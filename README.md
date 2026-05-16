@@ -36,7 +36,7 @@ Use it for **authorized** work: penetration testing (with written scope), mobile
 ### Build & run
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/smart-route.git
+git clone https://github.com/0xsimaa/smart-route.git
 cd smart-route
 flutter pub get
 ```
