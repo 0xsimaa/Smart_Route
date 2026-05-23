@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Smart Route</string>
+
+    <!-- Activity titles -->
+    <string name="title_home">Smart Route v2</string>
+    <string name="title_route_map">Route map</string>
+    <string name="title_settings">Simulation settings</string>
+    <string name="title_setup">Device setup</string>
+    <string name="title_pick_safe_zone">Pick safe zone</string>
+
+    <!-- Notification channel -->
+    <string name="channel_mock_gps">Mock location service</string>
+    <string name="channel_mock_gps_desc">Ongoing notification while Smart Route is injecting GPS coordinates.</string>
+    <string name="notif_title">Smart Route — Mock GPS</string>
+    <string name="notif_active">Mock GPS active</string>
+
+    <!-- Common -->
+    <string name="action_start">Start</string>
+    <string name="action_pause">Pause</string>
+    <string name="action_resume">Resume</string>
+    <string name="action_stop">Stop</string>
+    <string name="action_open_map">Map</string>
+    <string name="action_open_settings">Settings</string>
+    <string name="action_export_gpx">Export GPX</string>
+    <string name="action_audit">Audit log</string>
+    <string name="action_setup">Setup</string>
+    <string name="action_apply">Apply settings</string>
+    <string name="action_save_route">Save route</string>
+    <string name="action_add_waypoint">Add waypoint</string>
+    <string name="action_clear_waypoints">Clear waypoints</string>
+    <string name="action_recheck">Re-check status</string>
+    <string name="action_grant">Grant</string>
+    <string name="action_open">Open</string>
+    <string name="action_continue">Continue to app</string>
+    <string name="action_close">Close</string>
+
+    <!-- Home -->
+    <string name="injected_gps">Injected GPS (system test provider)</string>
+    <string name="not_broadcasting">Not broadcasting</string>
+    <string name="default_route_hint">Default test route: Islamabad → Abbottabad</string>
+    <string name="enable_dev_options_hint">Settings → Developer options → Select mock location app → Smart Route</string>
+    <string name="mock_not_configured">Mock location not configured</string>
+    <string name="mock_not_configured_sub">Complete setup so other apps receive injected GPS.</string>
+    <string name="mode_static">Static</string>
+    <string name="mode_dynamic">Dynamic</string>
+
+    <!-- Settings -->
+    <string name="speed_range_label">Speed (km/h)</string>
+    <string name="update_interval_label">Update interval: %1$d s</string>
+    <string name="duration_label">Journey duration: %1$d min</string>
+    <string name="natural_pauses_title">Natural pauses</string>
+    <string name="natural_pauses_sub">Brief stops along the route</string>
+    <string name="path_shape_label">Path shape</string>
+    <string name="acceleration_label">Acceleration</string>
+    <string name="auto_reset_label">Auto-reset window: %1$s</string>
+    <string name="auto_reset_off">Off</string>
+    <string name="safe_zone_title">Safe zone fallback</string>
+
+    <!-- Setup -->
+    <string name="setup_intro_title">Real mock GPS on Android</string>
+    <string name="setup_intro_body">Smart Route injects coordinates through Android\'s test location provider. Other apps read these as your device position when mock mode is configured correctly.</string>
+    <string name="setup_step1_title">Enable Developer options</string>
+    <string name="setup_step1_sub">Settings → About phone → tap Build number 7 times</string>
+    <string name="setup_step2_title">Select mock location app</string>
+    <string name="setup_step2_sub">Developer options → Select mock location app → Smart Route</string>
+    <string name="setup_step3_title">Grant location &amp; notifications</string>
+    <string name="setup_step3_sub">Required for foreground service and leak detection</string>
+    <string name="setup_step4_title">Google Maps API key</string>
+    <string name="setup_step4_sub">Set MAPS_API_KEY in secrets.properties</string>
+    <string name="setup_status_ready">Ready for mock GPS</string>
+    <string name="setup_status_not_ready">Mock app not selected</string>
+
+    <!-- Privacy banner -->
+    <string name="status_idle">Idle</string>
+    <string name="status_active">Mock GPS active</string>
+    <string name="status_fallback">Safe-zone fallback engaged</string>
+    <string name="status_leak_warning">Leak detected — safe-zone applied</string>
+    <string name="status_error">Error</string>
+
+    <!-- Audit -->
+    <string name="audit_title">Session audit</string>
+    <string name="audit_empty">No audit entries yet.</string>
+
+    <!-- Misc -->
+    <string name="progress_format">Progress %1$.1f%%</string>
+    <string name="remaining_format">Remaining: %1$dm %2$ds</string>
+</resources>

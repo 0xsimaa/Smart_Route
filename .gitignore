@@ -1,22 +1,21 @@
-# Flutter
-.dart_tool/
-.flutter-plugins
-.flutter-plugins-dependencies
-.packages
-build/
+# Android Studio / Gradle
 *.iml
 .idea/
+.gradle/
+local.properties
+build/
+captures/
+.externalNativeBuild/
+.cxx/
 
-# Android
-**/android/**/local.properties
-**/android/.gradle/
-**/android/app/google-services.json
-**/android/key.properties
+# Keys and signing
 *.jks
+*.keystore
+keystore.properties
 
 # Secrets
-.env
-**/secrets.xml
+secrets.properties
+**/google-services.json
 
 # OS
 .DS_Store

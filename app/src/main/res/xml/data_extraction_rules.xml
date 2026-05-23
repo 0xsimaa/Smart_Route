@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<data-extraction-rules>
+    <cloud-backup disableIfNoEncryptionCapabilities="true">
+        <exclude domain="sharedpref" path="smart_route_secure"/>
+        <exclude domain="sharedpref" path="smart_route_secure_plain"/>
+        <exclude domain="sharedpref" path="smart_route_session"/>
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="sharedpref" path="smart_route_secure"/>
+        <exclude domain="sharedpref" path="smart_route_secure_plain"/>
+        <exclude domain="sharedpref" path="smart_route_session"/>
+    </device-transfer>
+</data-extraction-rules>

@@ -1,0 +1,77 @@
+plugins {
+    id 'com.android.application'
+}
+
+def loadMapsKey() {
+    def f = rootProject.file('secrets.properties')
+    if (f.exists()) {
+        def p = new Properties()
+        f.withInputStream { p.load(it) }
+        return p.getProperty('MAPS_API_KEY', '')
+    }
+    return ''
+}
+
+android {
+    namespace "com.cybersec.smartroute"
+    compileSdk 34
+
+    defaultConfig {
+        applicationId "com.cybersec.smartroute"
+        minSdk 24
+        targetSdk 34
+        versionCode 1
+        versionName "2.0.0"
+
+        manifestPlaceholders = [
+                MAPS_API_KEY: loadMapsKey()
+        ]
+    }
+
+    buildTypes {
+        debug {
+            minifyEnabled false
+        }
+        release {
+            minifyEnabled true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.debug
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    buildFeatures {
+        viewBinding true
+    }
+
+    packaging {
+        resources {
+            excludes += ['META-INF/AL2.0', 'META-INF/LGPL2.1']
+        }
+    }
+}
+
+dependencies {
+    implementation 'androidx.appcompat:appcompat:1.7.0'
+    implementation 'androidx.core:core:1.13.1'
+    implementation 'androidx.activity:activity:1.9.2'
+    implementation 'androidx.fragment:fragment:1.8.4'
+    implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
+    implementation 'androidx.lifecycle:lifecycle-runtime:2.8.6'
+    implementation 'androidx.lifecycle:lifecycle-viewmodel:2.8.6'
+    implementation 'androidx.lifecycle:lifecycle-livedata:2.8.6'
+    implementation 'com.google.android.material:material:1.12.0'
+
+    // Google Maps + Play Services Location (real device GPS for leak detection)
+    implementation 'com.google.android.gms:play-services-maps:19.0.0'
+    implementation 'com.google.android.gms:play-services-location:21.3.0'
+
+    // Encrypted prefs for config + audit log
+    implementation 'androidx.security:security-crypto:1.1.0-alpha06'
+
+    testImplementation 'junit:junit:4.13.2'
+}
