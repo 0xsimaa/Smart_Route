@@ -23,9 +23,9 @@ android {
         versionCode 1
         versionName "2.0.0"
 
-        manifestPlaceholders = [
-                MAPS_API_KEY: loadMapsKey()
-        ]
+        def mapsKey = loadMapsKey()
+        manifestPlaceholders = [MAPS_API_KEY: mapsKey]
+        buildConfigField "String", "MAPS_API_KEY", "\"${mapsKey.replace('\"', '')}\""
     }
 
     buildTypes {
@@ -46,6 +46,14 @@ android {
 
     buildFeatures {
         viewBinding true
+        buildConfig true
+    }
+
+    testOptions {
+        unitTests {
+            includeAndroidResources = true
+            returnDefaultValues = true
+        }
     }
 
     packaging {
@@ -61,6 +69,8 @@ dependencies {
     implementation 'androidx.activity:activity:1.9.2'
     implementation 'androidx.fragment:fragment:1.8.4'
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
+    implementation 'androidx.gridlayout:gridlayout:1.0.0'
+    implementation 'androidx.preference:preference:1.2.1'
     implementation 'androidx.lifecycle:lifecycle-runtime:2.8.6'
     implementation 'androidx.lifecycle:lifecycle-viewmodel:2.8.6'
     implementation 'androidx.lifecycle:lifecycle-livedata:2.8.6'
@@ -74,4 +84,5 @@ dependencies {
     implementation 'androidx.security:security-crypto:1.1.0-alpha06'
 
     testImplementation 'junit:junit:4.13.2'
+    testImplementation 'org.json:json:20240303'
 }

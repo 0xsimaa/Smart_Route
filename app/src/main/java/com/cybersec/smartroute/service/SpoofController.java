@@ -65,6 +65,9 @@ public final class SpoofController {
     private long sessionStartMs;
     private Long autoResetAtMs;
     private Runnable tick;
+    private double currentSpeedMps;
+    private double currentBearingDeg;
+    private double distanceTraveledKm;
 
     private SpoofController(Context appContext) {
         this.appContext = appContext;
@@ -108,6 +111,9 @@ public final class SpoofController {
         }
     }
     public long getSessionStartMs() { return sessionStartMs; }
+    public double getCurrentSpeedMps() { return currentSpeedMps; }
+    public double getCurrentBearing() { return currentBearingDeg; }
+    public double getDistanceTraveledKm() { return distanceTraveledKm; }
 
     public Long getRemainingMs() {
         if (!active || sessionStartMs == 0) return null;
@@ -186,6 +192,9 @@ public final class SpoofController {
         synchronized (trajectory) { trajectory.clear(); }
         progress = 0;
         lastPushed = null;
+        currentSpeedMps = 0;
+        currentBearingDeg = 0;
+        distanceTraveledKm = 0;
         sessionStartMs = System.currentTimeMillis();
         autoResetAtMs = config.autoResetMinutes == null
                 ? null
@@ -232,6 +241,8 @@ public final class SpoofController {
         active = false;
         paused = false;
         progress = 0;
+        currentSpeedMps = 0;
+        currentBearingDeg = 0;
         status = PrivacyStatus.IDLE;
         statusMessage = userInitiated ? "Mock GPS stopped" : "Session ended";
         MockLocationForegroundService.stop(appContext);
@@ -279,6 +290,11 @@ public final class SpoofController {
             return;
         }
         LatLng pos = new LatLng(r.lat, r.lon);
+        if (lastPushed != null) {
+            distanceTraveledKm += LatLng.haversineKm(lastPushed, pos);
+        }
+        currentSpeedMps = r.speedMps;
+        currentBearingDeg = r.bearing;
         progress = r.progress;
         lastPushed = pos;
         synchronized (trajectory) {
@@ -313,7 +329,10 @@ public final class SpoofController {
         if (lastPushed != null) {
             bearing = (float) com.cybersec.smartroute.util.MotionMetrics.bearingDegrees(lastPushed, pos);
             speed = (float) com.cybersec.smartroute.util.MotionMetrics.speedMps(lastPushed, pos, dt);
+            distanceTraveledKm += LatLng.haversineKm(lastPushed, pos);
         }
+        currentBearingDeg = bearing;
+        currentSpeedMps = speed;
         boolean ok = MockLocationEngine.setLocation(
                 pos.latitude, pos.longitude, 3f, 0d, bearing, speed);
         if (!ok && !fallback) {

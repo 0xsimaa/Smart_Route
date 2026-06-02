@@ -3,8 +3,8 @@
     <string name="app_name">Smart Route</string>
 
     <!-- Activity titles -->
-    <string name="title_home">Smart Route v2</string>
-    <string name="title_route_map">Route map</string>
+    <string name="title_home">Mock GPS dashboard</string>
+    <string name="title_route_map">Route planner</string>
     <string name="title_settings">Simulation settings</string>
     <string name="title_setup">Device setup</string>
     <string name="title_pick_safe_zone">Pick safe zone</string>
@@ -23,6 +23,7 @@
     <string name="action_open_map">Map</string>
     <string name="action_open_settings">Settings</string>
     <string name="action_export_gpx">Export GPX</string>
+    <string name="action_share_gpx">Share GPX</string>
     <string name="action_audit">Audit log</string>
     <string name="action_setup">Setup</string>
     <string name="action_apply">Apply settings</string>
@@ -34,28 +35,45 @@
     <string name="action_open">Open</string>
     <string name="action_continue">Continue to app</string>
     <string name="action_close">Close</string>
+    <string name="action_about">About</string>
+    <string name="action_copy_coords">Copy coordinates</string>
+    <string name="action_edit_route">Edit on map</string>
 
     <!-- Home -->
+    <string name="route_summary">Route summary</string>
+    <string name="first_run_title">Pick a route first</string>
+    <string name="first_run_body">You haven\'t picked a real start &amp; end yet. Open the map and drag the green / red markers to where you want Smart Route to inject GPS coordinates from / to.</string>
+    <string name="first_run_open_map">Open map</string>
+    <string name="map_hint_drag_markers">Drag the green / red markers to set start and end. Long-press the map to add a waypoint.</string>
+    <string name="map_route_meta">%1$d waypoints • %2$.2f km</string>
+    <string name="notif_progress">%1$.1f%% • %2$.5f, %3$.5f</string>
+    <string name="notif_action_stop">Stop</string>
     <string name="injected_gps">Injected GPS (system test provider)</string>
     <string name="not_broadcasting">Not broadcasting</string>
-    <string name="default_route_hint">Default test route: Islamabad → Abbottabad</string>
-    <string name="enable_dev_options_hint">Settings → Developer options → Select mock location app → Smart Route</string>
+    <string name="hint_start_idle">Tap Start to begin injecting GPS</string>
+    <string name="hint_setup_required">Configure mock app permission to begin</string>
     <string name="mock_not_configured">Mock location not configured</string>
     <string name="mock_not_configured_sub">Complete setup so other apps receive injected GPS.</string>
     <string name="mode_static">Static</string>
-    <string name="mode_dynamic">Dynamic</string>
+    <string name="mode_dynamic">Dynamic route</string>
+
+    <!-- Metric tiles -->
+    <string name="metric_coords">Coordinates</string>
+    <string name="metric_speed">Ground speed</string>
+    <string name="metric_bearing">Bearing</string>
+    <string name="metric_distance">Distance traveled</string>
 
     <!-- Settings -->
-    <string name="speed_range_label">Speed (km/h)</string>
+    <string name="speed_range_label">Speed range (km/h)</string>
     <string name="update_interval_label">Update interval: %1$d s</string>
     <string name="duration_label">Journey duration: %1$d min</string>
     <string name="natural_pauses_title">Natural pauses</string>
     <string name="natural_pauses_sub">Brief stops along the route</string>
     <string name="path_shape_label">Path shape</string>
-    <string name="acceleration_label">Acceleration</string>
+    <string name="acceleration_label">Acceleration profile</string>
     <string name="auto_reset_label">Auto-reset window: %1$s</string>
     <string name="auto_reset_off">Off</string>
-    <string name="safe_zone_title">Safe zone fallback</string>
+    <string name="safe_zone_title">Safe-zone fallback</string>
 
     <!-- Setup -->
     <string name="setup_intro_title">Real mock GPS on Android</string>
@@ -67,15 +85,17 @@
     <string name="setup_step3_title">Grant location &amp; notifications</string>
     <string name="setup_step3_sub">Required for foreground service and leak detection</string>
     <string name="setup_step4_title">Google Maps API key</string>
-    <string name="setup_step4_sub">Set MAPS_API_KEY in secrets.properties</string>
+    <string name="setup_step4_sub">Copy secrets.properties.example → secrets.properties and set MAPS_API_KEY (Maps SDK for Android enabled in Google Cloud)</string>
+    <string name="setup_maps_missing">Maps key missing — add MAPS_API_KEY to secrets.properties and rebuild</string>
     <string name="setup_status_ready">Ready for mock GPS</string>
     <string name="setup_status_not_ready">Mock app not selected</string>
 
     <!-- Privacy banner -->
     <string name="status_idle">Idle</string>
-    <string name="status_active">Mock GPS active</string>
-    <string name="status_fallback">Safe-zone fallback engaged</string>
-    <string name="status_leak_warning">Leak detected — safe-zone applied</string>
+    <string name="status_active">Active</string>
+    <string name="status_paused">Paused</string>
+    <string name="status_fallback">Safe zone</string>
+    <string name="status_leak_warning">Leak detected</string>
     <string name="status_error">Error</string>
 
     <!-- Audit -->
@@ -83,6 +103,17 @@
     <string name="audit_empty">No audit entries yet.</string>
 
     <!-- Misc -->
-    <string name="progress_format">Progress %1$.1f%%</string>
-    <string name="remaining_format">Remaining: %1$dm %2$ds</string>
+    <string name="progress_format">%1$.1f%% complete</string>
+    <string name="remaining_format">%1$dm %2$ds left</string>
+    <string name="route_meta_format">%1$d waypoints • %2$s • %3$.0f–%4$.0f km/h • %5$d min</string>
+    <string name="copied_to_clipboard">Coordinates copied</string>
+    <string name="gpx_saved_at">GPX saved to %1$s</string>
+    <string name="no_trajectory_yet">No trajectory recorded yet</string>
+
+    <!-- About -->
+    <string name="about_title">About Smart Route</string>
+    <string name="about_body">Smart Route is an Android-native security &amp; QA tool that injects mock GPS coordinates through the official test location provider API. Use only for authorized work.\n\nVersion %1$s</string>
+
+    <!-- File provider -->
+    <string name="file_provider_authority">com.cybersec.smartroute.fileprovider</string>
 </resources>

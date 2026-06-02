@@ -16,6 +16,7 @@
             android:background="?attr/colorPrimary"
             app:title="@string/title_route_map"
             app:titleTextColor="@color/md_theme_on_primary"
+            app:navigationIcon="@drawable/ic_back"
             app:menu="@menu/map_menu"/>
     </com.google.android.material.appbar.AppBarLayout>
 
@@ -31,7 +32,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="@string/action_save_route"
-        app:icon="@android:drawable/ic_menu_save"
+        app:icon="@drawable/ic_save"
         android:layout_gravity="bottom|end"
         android:layout_margin="16dp"/>
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

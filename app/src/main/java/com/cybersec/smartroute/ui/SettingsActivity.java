@@ -44,6 +44,7 @@ public class SettingsActivity extends AppCompatActivity {
     private MaterialButton shapeCurved;
     private Spinner spinnerAccel;
     private Slider sliderAutoReset;
+    private TextView lblSpeed;
     private TextView lblInterval;
     private TextView lblDuration;
     private TextView lblAutoReset;
@@ -68,6 +69,7 @@ public class SettingsActivity extends AppCompatActivity {
         shapeCurved = findViewById(R.id.shapeCurved);
         spinnerAccel = findViewById(R.id.spinnerAccel);
         sliderAutoReset = findViewById(R.id.sliderAutoReset);
+        lblSpeed = findViewById(R.id.lblSpeed);
         lblInterval = findViewById(R.id.lblInterval);
         lblDuration = findViewById(R.id.lblDuration);
         lblAutoReset = findViewById(R.id.lblAutoReset);
@@ -90,6 +92,7 @@ public class SettingsActivity extends AppCompatActivity {
         spinnerAccel.setSelection(adapter.getPosition(c.acceleration.wireName()));
 
         renderLabels();
+        sliderSpeed.addOnChangeListener((s, value, fromUser) -> renderLabels());
         sliderInterval.addOnChangeListener((s, value, fromUser) -> renderLabels());
         sliderDuration.addOnChangeListener((s, value, fromUser) -> renderLabels());
         sliderAutoReset.addOnChangeListener((s, value, fromUser) -> renderLabels());
@@ -106,9 +109,12 @@ public class SettingsActivity extends AppCompatActivity {
     }
 
     private void renderLabels() {
+        java.util.List<Float> speeds = sliderSpeed.getValues();
         int interval = (int) sliderInterval.getValue();
         int duration = (int) sliderDuration.getValue();
         int autoReset = (int) sliderAutoReset.getValue();
+        lblSpeed.setText(String.format(Locale.US, "%.0f – %.0f km/h",
+                speeds.get(0), speeds.get(1)));
         lblInterval.setText(String.format(getString(R.string.update_interval_label), interval));
         lblDuration.setText(String.format(getString(R.string.duration_label), duration));
         lblAutoReset.setText(String.format(getString(R.string.auto_reset_label),

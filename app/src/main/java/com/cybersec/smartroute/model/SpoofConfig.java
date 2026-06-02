@@ -13,8 +13,13 @@ import java.util.List;
  */
 public final class SpoofConfig {
 
-    public static final LatLng DEFAULT_START = new LatLng(33.6844, 73.0479);
-    public static final LatLng DEFAULT_END = new LatLng(34.1688, 73.2215);
+    /**
+     * Neutral default route: a small ~150m segment at the prime meridian so
+     * the simulator has valid math on first launch but the user is forced
+     * to pick a real route on the map screen before doing anything useful.
+     */
+    public static final LatLng DEFAULT_START = new LatLng(0.0, 0.0);
+    public static final LatLng DEFAULT_END = new LatLng(0.001, 0.001);
 
     public final SpoofMode mode;
     public final LatLng start;
@@ -50,6 +55,27 @@ public final class SpoofConfig {
 
     public static SpoofConfig defaults() {
         return new Builder().build();
+    }
+
+    /**
+     * True when start/end are still at the placeholder defaults — the user
+     * must pick a real route on the map first.
+     */
+    public boolean isUsingPlaceholderRoute() {
+        return start.equals(DEFAULT_START) && end.equals(DEFAULT_END);
+    }
+
+    /** Total straight-line route length (start → waypoints → end) in metres. */
+    public double routeLengthMeters() {
+        java.util.List<LatLng> pts = new java.util.ArrayList<>(waypoints.size() + 2);
+        pts.add(start);
+        pts.addAll(waypoints);
+        pts.add(end);
+        double km = 0;
+        for (int i = 0; i < pts.size() - 1; i++) {
+            km += LatLng.haversineKm(pts.get(i), pts.get(i + 1));
+        }
+        return km * 1000.0;
     }
 
     public Builder toBuilder() {

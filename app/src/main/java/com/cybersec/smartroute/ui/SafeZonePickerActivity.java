@@ -14,7 +14,7 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.material.appbar.MaterialToolbar;
-import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton;
 
 public class SafeZonePickerActivity extends AppCompatActivity {
 
@@ -29,15 +29,20 @@ public class SafeZonePickerActivity extends AppCompatActivity {
         MaterialToolbar toolbar = findViewById(R.id.toolbar);
         toolbar.setNavigationOnClickListener(v -> finish());
 
-        double lat = getIntent().getDoubleExtra(SettingsActivity.EXTRA_SAFE_LAT, 33.6844);
-        double lon = getIntent().getDoubleExtra(SettingsActivity.EXTRA_SAFE_LON, 73.0479);
+        double lat = getIntent().getDoubleExtra(SettingsActivity.EXTRA_SAFE_LAT, 0.0);
+        double lon = getIntent().getDoubleExtra(SettingsActivity.EXTRA_SAFE_LON, 0.0);
         selected = new LatLng(lat, lon);
+        boolean placeholder = lat == 0.0 && lon == 0.0;
 
         SupportMapFragment frag = (SupportMapFragment)
                 getSupportFragmentManager().findFragmentById(R.id.safeMapFragment);
         if (frag != null) {
             frag.getMapAsync(map -> {
-                map.moveCamera(CameraUpdateFactory.newLatLngZoom(selected, 12f));
+                // If we have no real safe-zone yet, zoom out to a world view so
+                // the user can pan to a sensible spot rather than landing on
+                // Null Island at street zoom.
+                map.moveCamera(CameraUpdateFactory.newLatLngZoom(
+                        selected, placeholder ? 2f : 12f));
                 marker = map.addMarker(new MarkerOptions()
                         .position(selected)
                         .draggable(true)
@@ -57,7 +62,7 @@ public class SafeZonePickerActivity extends AppCompatActivity {
             });
         }
 
-        FloatingActionButton fab = findViewById(R.id.fabConfirm);
+        ExtendedFloatingActionButton fab = findViewById(R.id.fabConfirm);
         fab.setOnClickListener(v -> {
             Intent out = new Intent();
             out.putExtra(SettingsActivity.EXTRA_SAFE_LAT, selected.latitude);

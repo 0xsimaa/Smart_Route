@@ -2,6 +2,7 @@
 <androidx.coordinatorlayout.widget.CoordinatorLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:fitsSystemWindows="true">
@@ -17,71 +18,151 @@
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
             android:background="?attr/colorPrimary"
-            app:title="@string/title_home"
+            app:title="@string/app_name"
+            app:subtitle="@string/title_home"
             app:titleTextColor="@color/md_theme_on_primary"
+            app:subtitleTextColor="@color/md_theme_on_primary"
             app:menu="@menu/main_menu"/>
     </com.google.android.material.appbar.AppBarLayout>
 
     <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        app:layout_behavior="@string/appbar_scrolling_view_behavior">
+        app:layout_behavior="@string/appbar_scrolling_view_behavior"
+        android:clipToPadding="false"
+        android:paddingBottom="96dp">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:padding="12dp">
+            android:padding="16dp">
+
+            <!-- Status pill -->
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="start"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:background="@drawable/bg_status_pill"
+                android:paddingHorizontal="12dp"
+                android:paddingVertical="6dp"
+                android:id="@+id/statusPill">
+
+                <View
+                    android:id="@+id/statusDot"
+                    android:layout_width="8dp"
+                    android:layout_height="8dp"
+                    android:background="@drawable/dot_idle"/>
+
+                <TextView
+                    android:id="@+id/statusText"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:textColor="@android:color/white"
+                    android:textAppearance="?attr/textAppearanceLabelLarge"
+                    tools:text="Idle"/>
+            </LinearLayout>
 
             <TextView
-                android:id="@+id/statusBanner"
+                android:id="@+id/statusMessage"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:background="@drawable/bg_status_banner"
-                android:padding="12dp"
-                android:textAppearance="?attr/textAppearanceBodyMedium"
-                android:textStyle="bold"/>
+                android:layout_marginTop="6dp"
+                android:textAppearance="?attr/textAppearanceBodySmall"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                tools:text="Tap Start to begin injecting GPS"/>
 
+            <!-- Setup hint card (hidden when ready) -->
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/setupHint"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                app:cardBackgroundColor="?attr/colorSurfaceVariant"
-                android:visibility="gone">
+                android:layout_marginTop="14dp"
+                android:visibility="gone"
+                app:strokeColor="?attr/colorOutlineVariant"
+                app:strokeWidth="1dp"
+                app:cardBackgroundColor="?attr/colorSecondaryContainer">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="16dp">
+                    android:orientation="horizontal"
+                    android:padding="16dp"
+                    android:gravity="center_vertical">
 
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="@string/mock_not_configured"
-                        android:textAppearance="?attr/textAppearanceTitleMedium"/>
+                    <ImageView
+                        android:layout_width="28dp"
+                        android:layout_height="28dp"
+                        android:src="@drawable/ic_warning"
+                        app:tint="?attr/colorOnSecondaryContainer"/>
 
-                    <TextView
-                        android:layout_width="match_parent"
+                    <LinearLayout
+                        android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp"
-                        android:text="@string/mock_not_configured_sub"
-                        android:textAppearance="?attr/textAppearanceBodyMedium"/>
+                        android:layout_marginStart="12dp"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="@string/mock_not_configured"
+                            android:textAppearance="?attr/textAppearanceTitleMedium"
+                            android:textColor="?attr/colorOnSecondaryContainer"/>
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="@string/mock_not_configured_sub"
+                            android:textAppearance="?attr/textAppearanceBodySmall"
+                            android:textColor="?attr/colorOnSecondaryContainer"/>
+                    </LinearLayout>
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/btnSetup"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
                         android:text="@string/action_setup"/>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
+            <!-- Mode toggle -->
+            <com.google.android.material.button.MaterialButtonToggleGroup
+                android:id="@+id/modeToggle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="14dp"
+                app:singleSelection="true"
+                app:selectionRequired="true">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/modeStatic"
+                    style="?attr/materialButtonOutlinedStyle"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="wrap_content"
+                    android:text="@string/mode_static"
+                    app:icon="@drawable/ic_pin"/>
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/modeDynamic"
+                    style="?attr/materialButtonOutlinedStyle"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="wrap_content"
+                    android:text="@string/mode_dynamic"
+                    app:icon="@drawable/ic_route"/>
+            </com.google.android.material.button.MaterialButtonToggleGroup>
+
+            <!-- Route summary card -->
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="12dp">
+                android:layout_marginTop="14dp"
+                app:cardElevation="0dp"
+                app:strokeWidth="1dp"
+                app:strokeColor="?attr/colorOutlineVariant">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -92,41 +173,215 @@
                     <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="@string/injected_gps"
+                        android:text="@string/route_summary"
                         android:textAppearance="?attr/textAppearanceTitleMedium"/>
 
-                    <TextView
-                        android:id="@+id/txtCoords"
+                    <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp"
-                        android:text="@string/not_broadcasting"
-                        android:textAppearance="?attr/textAppearanceBodyMedium"/>
+                        android:layout_marginTop="10dp"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical">
+
+                        <View
+                            android:layout_width="10dp"
+                            android:layout_height="10dp"
+                            android:background="@drawable/dot_start"/>
+                        <TextView
+                            android:id="@+id/txtStart"
+                            android:layout_width="0dp"
+                            android:layout_weight="1"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:textAppearance="?attr/textAppearanceBodyMedium"
+                            tools:text="Start: 0.0000, 0.0000"/>
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="6dp"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical">
+
+                        <View
+                            android:layout_width="10dp"
+                            android:layout_height="10dp"
+                            android:background="@drawable/dot_end"/>
+                        <TextView
+                            android:id="@+id/txtEnd"
+                            android:layout_width="0dp"
+                            android:layout_weight="1"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:textAppearance="?attr/textAppearanceBodyMedium"
+                            tools:text="End: 0.0000, 0.0000"/>
+                    </LinearLayout>
+
+                    <TextView
+                        android:id="@+id/txtRouteMeta"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:textAppearance="?attr/textAppearanceBodySmall"
+                        android:textColor="?attr/colorOnSurfaceVariant"
+                        tools:text="0 waypoints • Straight • 40–80 km/h • 30 min"/>
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnEditRoute"
+                        style="?attr/materialButtonOutlinedStyle"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        android:text="@string/action_edit_route"
+                        app:icon="@drawable/ic_map"/>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <include
-                android:id="@+id/controlPanel"
-                layout="@layout/view_control_panel"
+            <!-- Live KPIs -->
+            <androidx.gridlayout.widget.GridLayout
+                android:id="@+id/metricsGrid"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"/>
+                android:layout_marginTop="14dp"
+                app:columnCount="2"
+                app:rowCount="2">
 
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:gravity="center"
-                android:text="@string/default_route_hint"
-                android:textAppearance="?attr/textAppearanceBodySmall"/>
+                <include
+                    android:id="@+id/tileCoords"
+                    layout="@layout/view_metric_tile"
+                    android:layout_margin="4dp"
+                    app:layout_columnWeight="1"
+                    app:layout_rowWeight="1"/>
 
-            <TextView
+                <include
+                    android:id="@+id/tileSpeed"
+                    layout="@layout/view_metric_tile"
+                    android:layout_margin="4dp"
+                    app:layout_columnWeight="1"
+                    app:layout_rowWeight="1"/>
+
+                <include
+                    android:id="@+id/tileBearing"
+                    layout="@layout/view_metric_tile"
+                    android:layout_margin="4dp"
+                    app:layout_columnWeight="1"
+                    app:layout_rowWeight="1"/>
+
+                <include
+                    android:id="@+id/tileDistance"
+                    layout="@layout/view_metric_tile"
+                    android:layout_margin="4dp"
+                    app:layout_columnWeight="1"
+                    app:layout_rowWeight="1"/>
+            </androidx.gridlayout.widget.GridLayout>
+
+            <!-- Progress + remaining -->
+            <com.google.android.material.progressindicator.LinearProgressIndicator
+                android:id="@+id/progressBar"
+                android:layout_width="match_parent"
+                android:layout_height="6dp"
+                android:layout_marginTop="14dp"
+                app:trackCornerRadius="3dp"
+                app:indicatorColor="?attr/colorPrimary"/>
+
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:gravity="center"
-                android:text="@string/enable_dev_options_hint"
-                android:textAppearance="?attr/textAppearanceBodySmall"/>
+                android:layout_marginTop="6dp"
+                android:orientation="horizontal">
+                <TextView
+                    android:id="@+id/txtProgress"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="wrap_content"
+                    android:textAppearance="?attr/textAppearanceBodySmall"
+                    tools:text="0%"/>
+                <TextView
+                    android:id="@+id/txtRemaining"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textAppearance="?attr/textAppearanceBodySmall"
+                    android:textColor="?attr/colorOnSurfaceVariant"
+                    tools:text="29m 30s"/>
+            </LinearLayout>
+
+            <!-- Controls -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:orientation="horizontal">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnPause"
+                    style="?attr/materialButtonOutlinedStyle"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="6dp"
+                    android:text="@string/action_pause"
+                    app:icon="@drawable/ic_pause"
+                    android:enabled="false"/>
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnStop"
+                    style="?attr/materialButtonOutlinedStyle"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="6dp"
+                    android:text="@string/action_stop"
+                    app:icon="@drawable/ic_stop"
+                    android:enabled="false"/>
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:orientation="horizontal">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnExportGpx"
+                    style="?attr/materialButtonOutlinedStyle"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="6dp"
+                    android:text="@string/action_export_gpx"
+                    app:icon="@drawable/ic_download"/>
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnShareGpx"
+                    style="?attr/materialButtonOutlinedStyle"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="6dp"
+                    android:text="@string/action_share_gpx"
+                    app:icon="@drawable/ic_share"/>
+            </LinearLayout>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnSettings"
+                style="?attr/materialButtonOutlinedStyle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="@string/action_open_settings"
+                app:icon="@drawable/ic_settings"/>
+
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
+
+    <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
+        android:id="@+id/fabStart"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
+        android:layout_margin="16dp"
+        android:text="@string/action_start"
+        app:icon="@drawable/ic_play"/>
+
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

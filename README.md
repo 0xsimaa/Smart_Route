@@ -1,84 +1,208 @@
-# Smart Route — Native Android (Java) Mock GPS
+# Smart Route
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/Platform-Android%20%E2%89%A5%2024-blue.svg)](https://developer.android.com)
+[![Language](https://img.shields.io/badge/Language-Java-orange.svg)](https://docs.oracle.com/en/java/)
 
-**Smart Route** is a native Android (Java) tool that injects **real mock GPS
-coordinates** into the Android location stack via the official
-[test location provider](https://developer.android.com/develop/sensors-sensors-location/testing)
-API. Other apps reading GPS receive these coordinates as if they came from
-the device's real GPS chip — this is **not** a map-only simulation.
+**Smart Route** is a native Android application (Java, Material 3) that injects
+**real mock GPS coordinates** through the operating system's
+[test location provider](https://developer.android.com/develop/sensors-sensors-location/testing).
+Any app that reads device location — maps, fitness trackers, ride-share clients,
+or your own QA build — sees the injected position as if it came from the GPS
+hardware.
 
-Use only for **authorized** work: penetration testing under written scope,
-mobile-app QA, privacy research, and university cybersecurity labs.
+This is **not** a map-only animation. Coordinates are written to
+`LocationManager` and propagate system-wide while a session is active.
 
-## What's real about it
+> **Authorized use only.** Run Smart Route on hardware you own or on systems
+> covered by written permission. See [SECURITY.md](SECURITY.md).
 
-| Capability | How it works |
-|------------|--------------|
-| System-level GPS injection | `LocationManager.addTestProvider("smart_route_gps")` + `setTestProviderLocation` |
-| Background persistence | Foreground `Service` (`location` type) keeps injecting when the activity is closed |
-| Crash / reboot recovery | Session blob stored in `SharedPreferences`; `BOOT_COMPLETED` receiver restarts safe-zone hold |
-| Realistic motion | Speed range, smooth/constant/sudden acceleration, curved Bézier paths, optional pauses |
-| Privacy safeguards | Safe-zone fallback, FusedLocationProvider leak detection, encrypted audit log (`EncryptedSharedPreferences`) |
-| GPX export | Persisted to app-scoped external storage |
+---
 
-## Build (Android Studio)
+## What you get
 
-### Requirements
+| Area | Details |
+|------|---------|
+| **Injection** | Custom provider `smart_route_gps` with latitude, longitude, accuracy, bearing, speed, and timestamps |
+| **Background** | Foreground service (`location` type) with live progress, coordinates, and a **Stop** action in the notification |
+| **Motion** | Speed range, smooth / constant / sudden acceleration, straight or curved paths, multi-waypoint routes, optional pauses |
+| **Safety** | Safe-zone fallback, leak detection (real GPS vs. injected), encrypted audit log |
+| **Export** | GPX 1.1 export and share via `FileProvider` |
+| **UI** | Dashboard with status pill, route summary, live metric tiles, route planner map, settings, setup wizard |
 
-- Android Studio Iguana (or newer) with AGP 8.7+
-- JDK 17
-- Android device or emulator (API 24+; **physical device recommended**)
-- Google Maps API key — [get one](https://developers.google.com/maps/documentation/android-sdk/get-api-key)
+On first launch the route is a neutral placeholder; you **must** open the map
+and set start / end (and optional waypoints) before starting a session.
 
-### Steps
+---
 
-1. `cp secrets.properties.example secrets.properties` and paste your Maps key.
-2. Open the project root in Android Studio (`File → Open` → this directory).
-3. Sync Gradle. Run on a real device.
-4. On the device:
-   - Settings → About phone → tap **Build number** 7× to enable Developer options.
-   - Developer options → **Select mock location app → Smart Route**.
-   - Open the app → Setup → grant location & notification permissions.
-5. Pick a route on the **Map** screen, hit **Start**, and watch any other
-   GPS app (Google Maps, etc.) follow Smart Route's coordinates.
+## Requirements
 
-## Project structure
+| Tool | Version |
+|------|---------|
+| Android Studio | Iguana or newer (AGP 8.7+) |
+| JDK | 17 |
+| Android SDK | API 34 (`compileSdk`); device **API 24+** |
+| Google Maps | [Maps SDK for Android](https://developers.google.com/maps/documentation/android-sdk/get-api-key) API key |
+| Device | **Physical phone strongly recommended** — emulators often do not propagate mock locations to other apps reliably |
 
-```
-app/
-  src/main/
-    AndroidManifest.xml
-    java/com/cybersec/smartroute/
-      engine/        # MockLocationEngine, NativeRouteSimulator, SessionAdvancer, MockLocationPermissions
-      service/       # MockLocationForegroundService, BootRecoveryReceiver, SpoofController
-      storage/       # SecureStorage (EncryptedSharedPreferences), MockLocationSessionStore
-      model/         # SpoofConfig, LatLng, enums
-      util/          # LeakDetector, MotionMetrics, GpxExporter
-      ui/            # MainActivity, MapActivity, SettingsActivity, SetupActivity, SafeZonePickerActivity
-    res/             # Material 3 layouts, themes, strings, drawables
+---
+
+## 1. Download dependencies
+
+From the project root (Linux / macOS):
+
+```bash
+chmod +x scripts/download-deps.sh
+./scripts/download-deps.sh
 ```
 
-## Verify it works
+Or manually:
 
-1. Open the **Map** screen, drag start/end markers (default: Islamabad → Abbottabad).
-2. Tap **Start** in the home screen.
-3. Open Google Maps or any GPS-using app — coordinates update every
-   `updateIntervalSeconds` (default 2s).
-4. Press Home — the foreground notification stays; injection continues.
-5. Hit **Export GPX** to save the trail under
-   `Android/data/com.cybersec.smartroute/files/Documents/`.
+```bash
+# Use JDK 17 if your default Java is newer and Gradle complains
+export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64   # adjust path on your OS
 
-## Responsible use
+./gradlew --refresh-dependencies :app:assembleDebug :app:assembleRelease :app:testDebugUnitTest
+```
 
-Read [SECURITY.md](SECURITY.md).
+Android Studio performs the same download on **File → Sync Project with Gradle Files**.
 
-- Only test devices and apps you own or have **written permission** to assess.
-- Mock location is detectable (`Location#isMock()` / `isFromMockProvider()`) —
-  document this in security reports.
-- Do not use to deceive individuals, evade law enforcement, or harass others.
+**Outputs after a successful build:**
+
+| Artifact | Path |
+|----------|------|
+| Debug APK | `app/build/outputs/apk/debug/app-debug.apk` |
+| Release APK | `app/build/outputs/apk/release/app-release.apk` |
+
+---
+
+## 2. Configure the Maps API key
+
+```bash
+cp secrets.properties.example secrets.properties
+```
+
+Edit `secrets.properties`:
+
+```properties
+MAPS_API_KEY=your_key_here
+```
+
+In [Google Cloud Console](https://console.cloud.google.com/):
+
+1. Create or select a project.
+2. Enable **Maps SDK for Android**.
+3. Create an API key; restrict it to Android apps + your package name
+   `com.cybersec.smartroute` and SHA-1 fingerprint for production.
+
+Rebuild after changing the key (`Build → Rebuild Project` or `./gradlew :app:assembleDebug`).
+
+`secrets.properties` is git-ignored.
+
+---
+
+## 3. Open in Android Studio
+
+1. **File → Open** → select this repository root (the folder containing `settings.gradle`).
+2. Wait for Gradle sync to finish.
+3. If prompted, accept SDK licenses and install **Android SDK Platform 34**.
+4. Set **JDK 17** under *Settings → Build, Execution, Deployment → Build Tools → Gradle*.
+
+Create `local.properties` automatically if missing (Studio writes `sdk.dir=…`), or:
+
+```properties
+sdk.dir=/path/to/Android/Sdk
+```
+
+---
+
+## 4. Run on a device
+
+### One-time device setup
+
+1. **Developer options** — Settings → About phone → tap **Build number** seven times.
+2. **Mock location app** — Developer options → **Select mock location app** → **Smart Route**.
+3. **USB debugging** — enable in Developer options; connect the phone via USB.
+4. In the app: open **Setup** (toolbar) and complete all four checklist steps (permissions + Maps key).
+
+### Install and launch
+
+**From Android Studio:** select your device → **Run** (▶) or `Shift+F10`.
+
+**From the command line:**
+
+```bash
+./gradlew :app:installDebug
+adb shell am start -n com.cybersec.smartroute/.ui.MainActivity
+```
+
+---
+
+## 5. Test that it works
+
+Use this checklist for a demo or lab report:
+
+| Step | Action | Expected result |
+|------|--------|-----------------|
+| 1 | Open **Edit on map**, drag green (start) and red (end) markers to two real places, tap **Save route** | Dashboard route summary updates with coordinates and distance |
+| 2 | Tap **Start** (extended FAB) | Status pill turns green; metric tiles show changing coordinates, speed, bearing |
+| 3 | Open **Google Maps** (or another GPS app) | The blue dot moves along your planned path |
+| 4 | Press **Home** | Persistent notification shows progress % and coordinates; injection continues |
+| 5 | Tap **Stop** in the app or **Stop** on the notification | Injection ends; notification disappears |
+| 6 | **Export GPX** / **Share GPX** | File saved under app storage and share sheet opens |
+
+Optional: **Settings** → adjust speed, interval, curved path, safe zone → start again.
+
+Full walkthrough: [USAGE.md](USAGE.md).
+
+**Unit tests (no device):**
+
+```bash
+./gradlew :app:testDebugUnitTest
+```
+
+---
+
+## Project layout
+
+```
+app/src/main/java/com/cybersec/smartroute/
+  engine/     MockLocationEngine, NativeRouteSimulator, SessionAdvancer
+  service/    SpoofController, MockLocationForegroundService, BootRecoveryReceiver
+  storage/    SecureStorage, MockLocationSessionStore
+  model/      SpoofConfig, LatLng, enums
+  util/       GpxExporter, LeakDetector, MotionMetrics
+  ui/         MainActivity, MapActivity, SettingsActivity, SetupActivity, SafeZonePickerActivity
+app/src/test/ RouteSimulatorTest (JVM)
+scripts/      download-deps.sh
+USAGE.md      Step-by-step testing guide
+SECURITY.md   Responsible-use policy
+```
+
+---
+
+## Permissions (summary)
+
+`ACCESS_FINE_LOCATION`, `ACCESS_COARSE_LOCATION`, `ACCESS_MOCK_LOCATION`,
+`FOREGROUND_SERVICE`, `FOREGROUND_SERVICE_LOCATION`, `POST_NOTIFICATIONS`,
+`RECEIVE_BOOT_COMPLETED`, `INTERNET` (map tiles only).
+
+No analytics SDKs.
+
+---
+
+## Troubleshooting
+
+| Symptom | Fix |
+|---------|-----|
+| Map is blank / gray | Add `MAPS_API_KEY` to `secrets.properties`, enable Maps SDK for Android, rebuild |
+| "Mock location not configured" | Select Smart Route as mock app in Developer options |
+| Other apps don't move | Use a **physical device**; confirm mock app selection and tap **Start** |
+| Gradle: `JAVA_COMPILER` error | Point `JAVA_HOME` to JDK **17**, not a JRE-only install |
+| Injection stops in background | Disable aggressive battery optimization for Smart Route |
+
+---
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+[MIT](LICENSE)

@@ -93,7 +93,7 @@ public class MockLocationForegroundService extends Service {
         JSONObject session = new MockLocationSessionStore(this).loadSession();
         intervalMs = session == null ? 2000L : session.optLong("updateIntervalMs", 2000L);
 
-        Notification n = buildNotification(getString(R.string.notif_active));
+        Notification n = buildNotification(getString(R.string.notif_active), 0);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             startForeground(NOTIFICATION_ID, n, ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION);
         } else {
@@ -103,6 +103,16 @@ public class MockLocationForegroundService extends Service {
         SessionAdvancer.advance(getApplicationContext(), 0.0);
         startTicks();
         return START_STICKY;
+    }
+
+    private void updateNotification(SessionAdvancer.AdvanceResult r) {
+        if (r == null) return;
+        String text = String.format(java.util.Locale.US,
+                getString(R.string.notif_progress),
+                r.progress * 100, r.lat, r.lon);
+        Notification n = buildNotification(text, (int) Math.round(r.progress * 100));
+        NotificationManager nm = getSystemService(NotificationManager.class);
+        if (nm != null) nm.notify(NOTIFICATION_ID, n);
     }
 
     @Nullable
@@ -125,6 +135,7 @@ public class MockLocationForegroundService extends Service {
                 double delta = intervalMs / 1000.0;
                 SessionAdvancer.AdvanceResult r =
                         SessionAdvancer.advance(getApplicationContext(), delta);
+                if (r != null) updateNotification(r);
                 if (r != null && r.done) {
                     stopSession();
                     return;
@@ -147,21 +158,34 @@ public class MockLocationForegroundService extends Service {
         stopSelf();
     }
 
-    private Notification buildNotification(String text) {
+    private Notification buildNotification(String text, int progressPct) {
         Intent launch = new Intent(this, MainActivity.class);
         launch.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
-        PendingIntent pending = PendingIntent.getActivity(
+        PendingIntent contentIntent = PendingIntent.getActivity(
                 this, 0, launch,
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
 
-        return new NotificationCompat.Builder(this, CHANNEL_ID)
+        Intent stop = new Intent(this, MockLocationForegroundService.class);
+        stop.setAction(ACTION_STOP);
+        PendingIntent stopIntent = PendingIntent.getService(
+                this, 1, stop,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+
+        NotificationCompat.Builder b = new NotificationCompat.Builder(this, CHANNEL_ID)
                 .setContentTitle(getString(R.string.notif_title))
                 .setContentText(text)
                 .setSmallIcon(android.R.drawable.ic_menu_mylocation)
-                .setContentIntent(pending)
+                .setContentIntent(contentIntent)
+                .addAction(android.R.drawable.ic_menu_close_clear_cancel,
+                        getString(R.string.notif_action_stop), stopIntent)
                 .setOngoing(true)
-                .setPriority(NotificationCompat.PRIORITY_LOW)
-                .build();
+                .setSilent(true)
+                .setPriority(NotificationCompat.PRIORITY_LOW);
+
+        if (progressPct > 0 && progressPct <= 100) {
+            b.setProgress(100, progressPct, false);
+        }
+        return b.build();
     }
 
     private void createNotificationChannel() {

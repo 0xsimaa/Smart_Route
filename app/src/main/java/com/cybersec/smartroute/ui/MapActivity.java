@@ -1,6 +1,7 @@
 package com.cybersec.smartroute.ui;
 
 import android.os.Bundle;
+import android.view.View;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.FragmentManager;
@@ -21,6 +22,7 @@ import com.google.android.gms.maps.model.Polyline;
 import com.google.android.gms.maps.model.PolylineOptions;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton;
+import com.google.android.material.snackbar.Snackbar;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -69,8 +71,24 @@ public class MapActivity extends AppCompatActivity {
                 map = googleMap;
                 map.getUiSettings().setMyLocationButtonEnabled(false);
                 map.getUiSettings().setZoomControlsEnabled(true);
+                map.getUiSettings().setCompassEnabled(true);
+                // Long-press anywhere to add a waypoint at that exact spot.
+                map.setOnMapLongClickListener(p -> {
+                    SpoofConfig cfg = controller.getConfig();
+                    List<LatLng> wps = new ArrayList<>(cfg.waypoints);
+                    wps.add(LatLng.fromGms(p));
+                    controller.updateConfig(cfg.toBuilder().waypoints(wps).build());
+                    drawAll();
+                });
                 drawAll();
                 fitToRoute();
+                if (controller.getConfig().isUsingPlaceholderRoute()) {
+                    View root = findViewById(android.R.id.content);
+                    Snackbar.make(root, R.string.map_hint_drag_markers,
+                            Snackbar.LENGTH_INDEFINITE)
+                            .setAction(R.string.action_close, v -> {})
+                            .show();
+                }
             });
         }
     }
@@ -167,6 +185,12 @@ public class MapActivity extends AppCompatActivity {
     private void fitToRoute() {
         if (map == null) return;
         SpoofConfig c = controller.getConfig();
+        if (c.isUsingPlaceholderRoute()) {
+            // World view so the user can pan to anywhere on Earth.
+            map.animateCamera(CameraUpdateFactory.newLatLngZoom(
+                    new com.google.android.gms.maps.model.LatLng(20.0, 0.0), 1.5f));
+            return;
+        }
         LatLngBounds.Builder b = new LatLngBounds.Builder();
         b.include(c.start.toGms());
         b.include(c.end.toGms());

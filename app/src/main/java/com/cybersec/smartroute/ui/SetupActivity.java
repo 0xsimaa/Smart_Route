@@ -15,6 +15,7 @@ import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 
+import com.cybersec.smartroute.BuildConfig;
 import com.cybersec.smartroute.R;
 import com.cybersec.smartroute.service.SpoofController;
 import com.google.android.material.appbar.MaterialToolbar;
@@ -67,8 +68,8 @@ public class SetupActivity extends AppCompatActivity {
     }
 
     private void refresh() {
-        boolean ready = controller.checkMockReady();
-        renderSteps(ready);
+        boolean ready = controller.checkMockReady() && hasMapsApiKey();
+        renderSteps(controller.checkMockReady(), hasMapsApiKey());
         statusIcon.setImageResource(ready
                 ? android.R.drawable.checkbox_on_background
                 : android.R.drawable.ic_dialog_alert);
@@ -77,7 +78,13 @@ public class SetupActivity extends AppCompatActivity {
         progressBar.setVisibility(View.GONE);
     }
 
-    private void renderSteps(boolean mockReady) {
+    private boolean hasMapsApiKey() {
+        String key = BuildConfig.MAPS_API_KEY;
+        return key != null && !key.isEmpty()
+                && !"YOUR_GOOGLE_MAPS_API_KEY".equals(key);
+    }
+
+    private void renderSteps(boolean mockReady, boolean mapsKeyOk) {
         stepsContainer.removeAllViews();
         boolean permsOk = hasLocationPerm() && hasNotificationPerm();
         addStep(1,
@@ -98,8 +105,9 @@ public class SetupActivity extends AppCompatActivity {
                 v -> requestRuntimePermissions());
         addStep(4,
                 getString(R.string.setup_step4_title),
-                getString(R.string.setup_step4_sub),
-                /* done */ true, null, null);
+                mapsKeyOk ? getString(R.string.setup_step4_sub)
+                        : getString(R.string.setup_maps_missing),
+                mapsKeyOk, null, null);
     }
 
     private void addStep(int number, String title, String subtitle,

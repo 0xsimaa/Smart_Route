@@ -1,14 +1,18 @@
 package com.cybersec.smartroute.ui;
 
 import android.Manifest;
+import android.content.ClipData;
+import android.content.ClipboardManager;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
-import android.text.format.DateUtils;
 import android.view.View;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -16,7 +20,9 @@ import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
+import androidx.core.content.FileProvider;
 
+import com.cybersec.smartroute.BuildConfig;
 import com.cybersec.smartroute.R;
 import com.cybersec.smartroute.model.LatLng;
 import com.cybersec.smartroute.model.PrivacyStatus;
@@ -28,6 +34,7 @@ import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.button.MaterialButtonToggleGroup;
 import com.google.android.material.card.MaterialCardView;
+import com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton;
 import com.google.android.material.progressindicator.LinearProgressIndicator;
 import com.google.android.material.snackbar.Snackbar;
 
@@ -41,22 +48,39 @@ public class MainActivity extends AppCompatActivity implements SpoofController.L
 
     private SpoofController controller;
 
-    private TextView statusBanner;
     private MaterialCardView setupHint;
-    private TextView txtCoords;
+    private View statusPill;
+    private View statusDot;
+    private TextView statusText;
+    private TextView statusMessage;
+
     private MaterialButtonToggleGroup modeToggle;
     private MaterialButton modeStatic;
     private MaterialButton modeDynamic;
+
+    private TextView txtStart;
+    private TextView txtEnd;
+    private TextView txtRouteMeta;
+
+    private View tileCoords;
+    private View tileSpeed;
+    private View tileBearing;
+    private View tileDistance;
+
     private LinearProgressIndicator progressBar;
     private TextView txtProgress;
     private TextView txtRemaining;
-    private MaterialButton btnStart;
+
+    private ExtendedFloatingActionButton fabStart;
     private MaterialButton btnPause;
     private MaterialButton btnStop;
-    private MaterialButton btnMap;
-    private MaterialButton btnSettings;
     private MaterialButton btnExportGpx;
+    private MaterialButton btnShareGpx;
+    private MaterialButton btnSettings;
+    private MaterialButton btnEditRoute;
     private MaterialButton btnSetup;
+
+    private File lastGpxFile;
 
     private final androidx.activity.result.ActivityResultLauncher<String[]> permissionLauncher =
             registerForActivityResult(new ActivityResultContracts.RequestMultiplePermissions(),
@@ -79,48 +103,105 @@ public class MainActivity extends AppCompatActivity implements SpoofController.L
             } else if (id == R.id.action_audit) {
                 showAuditDialog();
                 return true;
+            } else if (id == R.id.action_about) {
+                showAboutDialog();
+                return true;
             }
             return false;
         });
 
-        statusBanner = findViewById(R.id.statusBanner);
         setupHint = findViewById(R.id.setupHint);
-        txtCoords = findViewById(R.id.txtCoords);
-        progressBar = findViewById(R.id.progressBar);
-        txtProgress = findViewById(R.id.txtProgress);
-        txtRemaining = findViewById(R.id.txtRemaining);
-        btnStart = findViewById(R.id.btnStart);
-        btnPause = findViewById(R.id.btnPause);
-        btnStop = findViewById(R.id.btnStop);
-        btnMap = findViewById(R.id.btnMap);
-        btnSettings = findViewById(R.id.btnSettings);
-        btnExportGpx = findViewById(R.id.btnExportGpx);
-        btnSetup = findViewById(R.id.btnSetup);
+        statusPill = findViewById(R.id.statusPill);
+        statusDot = findViewById(R.id.statusDot);
+        statusText = findViewById(R.id.statusText);
+        statusMessage = findViewById(R.id.statusMessage);
+
         modeToggle = findViewById(R.id.modeToggle);
         modeStatic = findViewById(R.id.modeStatic);
         modeDynamic = findViewById(R.id.modeDynamic);
 
-        btnStart.setOnClickListener(v -> {
-            if (!controller.isMockAppReady()) {
-                startActivity(new Intent(this, SetupActivity.class));
-                return;
+        txtStart = findViewById(R.id.txtStart);
+        txtEnd = findViewById(R.id.txtEnd);
+        txtRouteMeta = findViewById(R.id.txtRouteMeta);
+
+        tileCoords = findViewById(R.id.tileCoords);
+        tileSpeed = findViewById(R.id.tileSpeed);
+        tileBearing = findViewById(R.id.tileBearing);
+        tileDistance = findViewById(R.id.tileDistance);
+        decorateTile(tileCoords, R.string.metric_coords, R.drawable.ic_my_location);
+        decorateTile(tileSpeed, R.string.metric_speed, R.drawable.ic_speed);
+        decorateTile(tileBearing, R.string.metric_bearing, R.drawable.ic_compass);
+        decorateTile(tileDistance, R.string.metric_distance, R.drawable.ic_distance);
+
+        progressBar = findViewById(R.id.progressBar);
+        txtProgress = findViewById(R.id.txtProgress);
+        txtRemaining = findViewById(R.id.txtRemaining);
+
+        fabStart = findViewById(R.id.fabStart);
+        btnPause = findViewById(R.id.btnPause);
+        btnStop = findViewById(R.id.btnStop);
+        btnExportGpx = findViewById(R.id.btnExportGpx);
+        btnShareGpx = findViewById(R.id.btnShareGpx);
+        btnSettings = findViewById(R.id.btnSettings);
+        btnEditRoute = findViewById(R.id.btnEditRoute);
+        btnSetup = findViewById(R.id.btnSetup);
+
+        fabStart.setOnClickListener(v -> {
+            if (controller.isActive()) {
+                if (controller.isPaused()) controller.resume();
+                else controller.pause();
+            } else {
+                if (!controller.isMockAppReady()) {
+                    startActivity(new Intent(this, SetupActivity.class));
+                    return;
+                }
+                if (controller.getConfig().isUsingPlaceholderRoute()) {
+                    showFirstRunDialog();
+                    return;
+                }
+                controller.start();
             }
-            controller.start();
         });
         btnPause.setOnClickListener(v -> {
             if (controller.isPaused()) controller.resume();
             else controller.pause();
         });
         btnStop.setOnClickListener(v -> controller.stop(true));
-        btnMap.setOnClickListener(v -> startActivity(new Intent(this, MapActivity.class)));
+        btnExportGpx.setOnClickListener(v -> exportGpx(false));
+        btnShareGpx.setOnClickListener(v -> exportGpx(true));
         btnSettings.setOnClickListener(v -> startActivity(new Intent(this, SettingsActivity.class)));
-        btnExportGpx.setOnClickListener(v -> exportGpx());
+        btnEditRoute.setOnClickListener(v -> startActivity(new Intent(this, MapActivity.class)));
         btnSetup.setOnClickListener(v -> startActivity(new Intent(this, SetupActivity.class)));
 
         modeStatic.setOnClickListener(v -> setMode(SpoofMode.STATIC_LOCATION));
         modeDynamic.setOnClickListener(v -> setMode(SpoofMode.DYNAMIC_PATH));
 
+        // Long-press on coords tile to copy
+        tileCoords.setOnLongClickListener(v -> {
+            LatLng cur = controller.getCurrentPosition();
+            if (cur == null) return true;
+            ClipboardManager cm = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+            if (cm != null) {
+                cm.setPrimaryClip(ClipData.newPlainText("smart-route-coords",
+                        formatLatLon(cur)));
+                Snackbar.make(v, R.string.copied_to_clipboard, Snackbar.LENGTH_SHORT).show();
+            }
+            return true;
+        });
+
         ensureRuntimePermissions();
+    }
+
+    private void decorateTile(View tile, int labelRes, int iconRes) {
+        TextView label = tile.findViewById(R.id.metricLabel);
+        ImageView icon = tile.findViewById(R.id.metricIcon);
+        if (label != null) label.setText(labelRes);
+        if (icon != null) icon.setImageResource(iconRes);
+    }
+
+    private void setTileValue(View tile, String value) {
+        TextView v = tile.findViewById(R.id.metricValue);
+        if (v != null) v.setText(value);
     }
 
     private void setMode(SpoofMode mode) {
@@ -176,7 +257,7 @@ public class MainActivity extends AppCompatActivity implements SpoofController.L
         boolean active = controller.isActive();
         boolean paused = controller.isPaused();
 
-        // Mode toggle (without re-triggering listeners)
+        // Mode toggle
         modeToggle.clearChecked();
         modeToggle.check(config.mode == SpoofMode.STATIC_LOCATION
                 ? R.id.modeStatic : R.id.modeDynamic);
@@ -185,46 +266,71 @@ public class MainActivity extends AppCompatActivity implements SpoofController.L
 
         setupHint.setVisibility(controller.isMockAppReady() ? View.GONE : View.VISIBLE);
 
-        // Status banner
+        // Status pill
         PrivacyStatus s = controller.getStatus();
-        String msg = controller.getStatusMessage();
-        switch (s) {
-            case ACTIVE:
-                statusBanner.setBackgroundColor(ContextCompat.getColor(this, R.color.status_active));
-                statusBanner.setTextColor(Color.WHITE);
-                statusBanner.setText(msg != null ? msg : getString(R.string.status_active));
-                break;
-            case FALLBACK:
-                statusBanner.setBackgroundColor(ContextCompat.getColor(this, R.color.status_fallback));
-                statusBanner.setTextColor(Color.WHITE);
-                statusBanner.setText(msg != null ? msg : getString(R.string.status_fallback));
-                break;
-            case LEAK_WARNING:
-                statusBanner.setBackgroundColor(ContextCompat.getColor(this, R.color.status_leak));
-                statusBanner.setTextColor(Color.WHITE);
-                statusBanner.setText(msg != null ? msg : getString(R.string.status_leak_warning));
-                break;
-            case ERROR:
-                statusBanner.setBackgroundColor(ContextCompat.getColor(this, R.color.status_error));
-                statusBanner.setTextColor(Color.WHITE);
-                statusBanner.setText(msg != null ? msg : getString(R.string.status_error));
-                break;
-            case IDLE:
-            default:
-                statusBanner.setBackgroundResource(R.drawable.bg_status_banner);
-                statusBanner.setTextColor(ContextCompat.getColor(this, R.color.md_theme_on_background));
-                statusBanner.setText(msg != null ? msg : getString(R.string.status_idle));
-                break;
-        }
-
-        // Coordinates
-        LatLng cur = controller.getCurrentPosition();
-        if (cur == null) {
-            txtCoords.setText(R.string.not_broadcasting);
+        int pillColor;
+        String label;
+        if (paused && active) {
+            pillColor = ContextCompat.getColor(this, R.color.status_fallback);
+            label = getString(R.string.status_paused);
         } else {
-            txtCoords.setText(String.format(Locale.US, "%.5f, %.5f",
-                    cur.latitude, cur.longitude));
+            switch (s) {
+                case ACTIVE:
+                    pillColor = ContextCompat.getColor(this, R.color.status_active);
+                    label = getString(R.string.status_active);
+                    break;
+                case FALLBACK:
+                    pillColor = ContextCompat.getColor(this, R.color.status_fallback);
+                    label = getString(R.string.status_fallback);
+                    break;
+                case LEAK_WARNING:
+                    pillColor = ContextCompat.getColor(this, R.color.status_leak);
+                    label = getString(R.string.status_leak_warning);
+                    break;
+                case ERROR:
+                    pillColor = ContextCompat.getColor(this, R.color.status_error);
+                    label = getString(R.string.status_error);
+                    break;
+                case IDLE:
+                default:
+                    pillColor = ContextCompat.getColor(this, R.color.status_idle);
+                    label = getString(R.string.status_idle);
+                    break;
+            }
         }
+        // Tint pill background while keeping pill shape
+        android.graphics.drawable.GradientDrawable pillBg =
+                (android.graphics.drawable.GradientDrawable)
+                        ContextCompat.getDrawable(this, R.drawable.bg_status_pill);
+        if (pillBg != null) {
+            pillBg = (android.graphics.drawable.GradientDrawable) pillBg.mutate();
+            pillBg.setColor(pillColor);
+            statusPill.setBackground(pillBg);
+        }
+        statusText.setText(label);
+        String msg = controller.getStatusMessage();
+        statusMessage.setText(msg != null ? msg
+                : (controller.isMockAppReady()
+                        ? getString(R.string.hint_start_idle)
+                        : getString(R.string.hint_setup_required)));
+
+        // Route summary
+        txtStart.setText(String.format(Locale.US, "Start: %.5f, %.5f",
+                config.start.latitude, config.start.longitude));
+        txtEnd.setText(String.format(Locale.US, "End: %.5f, %.5f",
+                config.end.latitude, config.end.longitude));
+        String shape = config.pathShape.name().toLowerCase();
+        txtRouteMeta.setText(String.format(getString(R.string.route_meta_format),
+                config.waypoints.size(), shape,
+                config.minSpeedKmh, config.maxSpeedKmh,
+                config.durationMinutes));
+
+        // KPIs
+        LatLng cur = controller.getCurrentPosition();
+        setTileValue(tileCoords, cur == null ? "—" : formatLatLon(cur));
+        setTileValue(tileSpeed, formatKmh(controller.getCurrentSpeedMps()));
+        setTileValue(tileBearing, formatBearing(controller.getCurrentBearing()));
+        setTileValue(tileDistance, formatKm(controller.getDistanceTraveledKm()));
 
         // Progress
         if (config.mode == SpoofMode.DYNAMIC_PATH) {
@@ -233,8 +339,8 @@ public class MainActivity extends AppCompatActivity implements SpoofController.L
             int pct = (int) Math.round(controller.getProgress() * 100);
             progressBar.setProgress(pct);
             if (active) {
-                txtProgress.setText(String.format(
-                        getString(R.string.progress_format), controller.getProgress() * 100));
+                txtProgress.setText(String.format(getString(R.string.progress_format),
+                        controller.getProgress() * 100));
             } else {
                 txtProgress.setText(String.format(Locale.US,
                         "Duration: %d min", config.durationMinutes));
@@ -254,38 +360,82 @@ public class MainActivity extends AppCompatActivity implements SpoofController.L
             txtRemaining.setVisibility(View.GONE);
         }
 
-        // Buttons
-        btnStart.setEnabled(!active);
+        // Buttons & FAB
+        if (active) {
+            fabStart.setText(paused ? R.string.action_resume : R.string.action_pause);
+            fabStart.setIconResource(paused ? R.drawable.ic_play : R.drawable.ic_pause);
+        } else {
+            fabStart.setText(R.string.action_start);
+            fabStart.setIconResource(R.drawable.ic_play);
+        }
         btnPause.setEnabled(active);
         btnPause.setText(paused ? R.string.action_resume : R.string.action_pause);
+        btnPause.setIconResource(paused ? R.drawable.ic_play : R.drawable.ic_pause);
         btnStop.setEnabled(active);
-        btnExportGpx.setEnabled(!controller.getTrajectory().isEmpty());
+        boolean hasTrail = !controller.getTrajectory().isEmpty();
+        btnExportGpx.setEnabled(hasTrail);
+        btnShareGpx.setEnabled(hasTrail || lastGpxFile != null);
     }
 
-    private void exportGpx() {
+    private String formatLatLon(LatLng l) {
+        return String.format(Locale.US, "%.5f, %.5f", l.latitude, l.longitude);
+    }
+
+    private String formatKmh(double mps) {
+        return String.format(Locale.US, "%.1f km/h", mps * 3.6);
+    }
+
+    private String formatBearing(double deg) {
+        return String.format(Locale.US, "%.0f°", ((deg % 360) + 360) % 360);
+    }
+
+    private String formatKm(double km) {
+        return String.format(Locale.US, "%.2f km", km);
+    }
+
+    private void exportGpx(boolean shareAfter) {
         List<LatLng> points = controller.getTrajectory();
-        if (points.isEmpty()) {
-            Toast.makeText(this, "No trajectory to export yet", Toast.LENGTH_SHORT).show();
+        if (points.isEmpty() && lastGpxFile == null) {
+            Toast.makeText(this, R.string.no_trajectory_yet, Toast.LENGTH_SHORT).show();
             return;
         }
-        String name = "smart_route_" + System.currentTimeMillis();
-        String gpx = GpxExporter.build(name, points,
-                controller.getSessionStartMs() == 0
-                        ? System.currentTimeMillis() : controller.getSessionStartMs(),
-                controller.getConfig().updateIntervalSeconds);
-        File dir = getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS);
-        if (dir == null) dir = getFilesDir();
-        File outFile = new File(dir, name + ".gpx");
-        try (FileWriter w = new FileWriter(outFile)) {
-            w.write(gpx);
-        } catch (IOException e) {
-            Toast.makeText(this, "GPX write failed: " + e.getMessage(),
-                    Toast.LENGTH_LONG).show();
-            return;
+        File outFile = lastGpxFile;
+        if (!points.isEmpty()) {
+            String name = "smart_route_" + System.currentTimeMillis();
+            String gpx = GpxExporter.build(name, points,
+                    controller.getSessionStartMs() == 0
+                            ? System.currentTimeMillis() : controller.getSessionStartMs(),
+                    controller.getConfig().updateIntervalSeconds);
+            File dir = getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS);
+            if (dir == null) dir = getFilesDir();
+            outFile = new File(dir, name + ".gpx");
+            try (FileWriter w = new FileWriter(outFile)) {
+                w.write(gpx);
+            } catch (IOException e) {
+                Toast.makeText(this, "GPX write failed: " + e.getMessage(),
+                        Toast.LENGTH_LONG).show();
+                return;
+            }
+            lastGpxFile = outFile;
         }
-        Snackbar.make(findViewById(android.R.id.content),
-                "GPX saved: " + outFile.getAbsolutePath(),
-                Snackbar.LENGTH_LONG).show();
+        if (shareAfter && outFile != null) {
+            shareGpx(outFile);
+        } else {
+            Snackbar.make(findViewById(android.R.id.content),
+                    String.format(getString(R.string.gpx_saved_at), outFile.getAbsolutePath()),
+                    Snackbar.LENGTH_LONG).show();
+        }
+    }
+
+    private void shareGpx(File file) {
+        Uri uri = FileProvider.getUriForFile(
+                this, getString(R.string.file_provider_authority), file);
+        Intent share = new Intent(Intent.ACTION_SEND);
+        share.setType("application/gpx+xml");
+        share.putExtra(Intent.EXTRA_STREAM, uri);
+        share.putExtra(Intent.EXTRA_SUBJECT, "Smart Route GPX");
+        share.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        startActivity(Intent.createChooser(share, "Share GPX"));
     }
 
     private void showAuditDialog() {
@@ -305,8 +455,24 @@ public class MainActivity extends AppCompatActivity implements SpoofController.L
                 .show();
     }
 
-    @SuppressWarnings("unused")
-    private String formatRelative(long epochMs) {
-        return DateUtils.getRelativeTimeSpanString(epochMs).toString();
+    private void showFirstRunDialog() {
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.first_run_title)
+                .setIcon(R.drawable.ic_map)
+                .setMessage(R.string.first_run_body)
+                .setPositiveButton(R.string.first_run_open_map,
+                        (d, w) -> startActivity(new Intent(this, MapActivity.class)))
+                .setNegativeButton(R.string.action_close, null)
+                .show();
+    }
+
+    private void showAboutDialog() {
+        String body = String.format(getString(R.string.about_body), BuildConfig.VERSION_NAME);
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.about_title)
+                .setIcon(R.drawable.ic_info)
+                .setMessage(body)
+                .setPositiveButton(R.string.action_close, null)
+                .show();
     }
 }
