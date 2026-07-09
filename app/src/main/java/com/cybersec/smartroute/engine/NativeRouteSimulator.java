@@ -28,6 +28,7 @@ public final class NativeRouteSimulator {
     private final boolean enablePauses;
     private final double pauseProbability;
     private final String acceleration;
+    private final List<LatLng> routePolyline;
 
     private double progress;
     private double currentSpeedKmh;
@@ -49,6 +50,19 @@ public final class NativeRouteSimulator {
         this.progress = session.optDouble("progress", 0);
         this.currentSpeedKmh = session.optDouble("currentSpeedKmh", minSpeedKmh);
         this.waypoints = parseWaypoints(session);
+        this.routePolyline = parseRoutePolyline(session);
+    }
+
+    private static List<LatLng> parseRoutePolyline(JSONObject session) {
+        List<LatLng> list = new ArrayList<>();
+        JSONArray arr = session.optJSONArray("routePolyline");
+        if (arr != null) {
+            for (int i = 0; i < arr.length(); i++) {
+                JSONObject o = arr.optJSONObject(i);
+                if (o != null) list.add(LatLng.fromJson(o));
+            }
+        }
+        return list;
     }
 
     private static List<LatLng> parseWaypoints(JSONObject session) {
@@ -120,6 +134,13 @@ public final class NativeRouteSimulator {
     // ---------- helpers ----------
 
     private double totalRouteKm() {
+        if (!routePolyline.isEmpty()) {
+            double total = 0;
+            for (int i = 0; i < routePolyline.size() - 1; i++) {
+                total += LatLng.haversineKm(routePolyline.get(i), routePolyline.get(i + 1));
+            }
+            return total;
+        }
         List<LatLng> pts = new ArrayList<>(waypoints.size() + 2);
         pts.add(start);
         pts.addAll(waypoints);
@@ -132,6 +153,9 @@ public final class NativeRouteSimulator {
     }
 
     private LatLng positionAt(double globalT) {
+        if (!routePolyline.isEmpty()) {
+            return positionAlongPolyline(routePolyline, globalT);
+        }
         List<LatLng> pts = new ArrayList<>(waypoints.size() + 2);
         pts.add(start);
         pts.addAll(waypoints);
@@ -156,6 +180,28 @@ public final class NativeRouteSimulator {
             remaining -= len;
         }
         return end;
+    }
+
+    private static LatLng positionAlongPolyline(List<LatLng> pts, double globalT) {
+        if (pts.isEmpty()) return new LatLng(0, 0);
+        if (pts.size() == 1) return pts.get(0);
+        double[] lengths = new double[pts.size() - 1];
+        double total = 0;
+        for (int i = 0; i < lengths.length; i++) {
+            lengths[i] = LatLng.haversineKm(pts.get(i), pts.get(i + 1));
+            total += lengths[i];
+        }
+        if (total == 0) return pts.get(0);
+        double remaining = Math.max(0, Math.min(1, globalT)) * total;
+        for (int i = 0; i < lengths.length; i++) {
+            double len = lengths[i];
+            if (remaining <= len || i == lengths.length - 1) {
+                double localT = len == 0 ? 1.0 : Math.max(0, Math.min(1, remaining / len));
+                return LatLng.linear(pts.get(i), pts.get(i + 1), localT);
+            }
+            remaining -= len;
+        }
+        return pts.get(pts.size() - 1);
     }
 
     private double targetSpeedKmh() {

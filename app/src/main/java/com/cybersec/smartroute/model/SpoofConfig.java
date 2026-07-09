@@ -35,6 +35,10 @@ public final class SpoofConfig {
     public final Integer autoResetMinutes;
     public final boolean enablePauses;
     public final double pauseProbability;
+    /** Road-following polyline from Directions API; empty when not fetched. */
+    public final List<LatLng> routePolyline;
+    /** Turn-by-turn steps from Directions API. */
+    public final List<String> directionSteps;
 
     private SpoofConfig(Builder b) {
         this.mode = b.mode;
@@ -51,6 +55,8 @@ public final class SpoofConfig {
         this.autoResetMinutes = b.autoResetMinutes;
         this.enablePauses = b.enablePauses;
         this.pauseProbability = b.pauseProbability;
+        this.routePolyline = Collections.unmodifiableList(new ArrayList<>(b.routePolyline));
+        this.directionSteps = Collections.unmodifiableList(new ArrayList<>(b.directionSteps));
     }
 
     public static SpoofConfig defaults() {
@@ -65,8 +71,15 @@ public final class SpoofConfig {
         return start.equals(DEFAULT_START) && end.equals(DEFAULT_END);
     }
 
-    /** Total straight-line route length (start → waypoints → end) in metres. */
+    /** Total route length in metres (road polyline when available). */
     public double routeLengthMeters() {
+        if (!routePolyline.isEmpty()) {
+            double km = 0;
+            for (int i = 0; i < routePolyline.size() - 1; i++) {
+                km += LatLng.haversineKm(routePolyline.get(i), routePolyline.get(i + 1));
+            }
+            return km * 1000.0;
+        }
         java.util.List<LatLng> pts = new java.util.ArrayList<>(waypoints.size() + 2);
         pts.add(start);
         pts.addAll(waypoints);
@@ -92,7 +105,9 @@ public final class SpoofConfig {
                 .safeZone(safeZone)
                 .autoResetMinutes(autoResetMinutes)
                 .enablePauses(enablePauses)
-                .pauseProbability(pauseProbability);
+                .pauseProbability(pauseProbability)
+                .routePolyline(routePolyline)
+                .directionSteps(directionSteps);
     }
 
     public JSONObject toJson() {
@@ -114,6 +129,12 @@ public final class SpoofConfig {
             if (autoResetMinutes != null) o.put("autoResetMinutes", autoResetMinutes);
             o.put("enablePauses", enablePauses);
             o.put("pauseProbability", pauseProbability);
+            JSONArray poly = new JSONArray();
+            for (LatLng p : routePolyline) poly.put(p.toJson());
+            o.put("routePolyline", poly);
+            JSONArray steps = new JSONArray();
+            for (String s : directionSteps) steps.put(s);
+            o.put("directionSteps", steps);
         } catch (JSONException ignored) {
         }
         return o;
@@ -154,6 +175,21 @@ public final class SpoofConfig {
         }
         b.enablePauses = o.optBoolean("enablePauses", false);
         b.pauseProbability = o.optDouble("pauseProbability", 0.02);
+        b.routePolyline = new ArrayList<>();
+        JSONArray poly = o.optJSONArray("routePolyline");
+        if (poly != null) {
+            for (int i = 0; i < poly.length(); i++) {
+                JSONObject pt = poly.optJSONObject(i);
+                if (pt != null) b.routePolyline.add(LatLng.fromJson(pt));
+            }
+        }
+        b.directionSteps = new ArrayList<>();
+        JSONArray steps = o.optJSONArray("directionSteps");
+        if (steps != null) {
+            for (int i = 0; i < steps.length(); i++) {
+                b.directionSteps.add(steps.optString(i, ""));
+            }
+        }
         return b.build();
     }
 
@@ -184,6 +220,9 @@ public final class SpoofConfig {
             o.put("pauseProbability", pauseProbability);
             o.put("progress", progress);
             o.put("durationMinutes", durationMinutes);
+            JSONArray poly = new JSONArray();
+            for (LatLng p : routePolyline) poly.put(p.toJson());
+            o.put("routePolyline", poly);
         } catch (JSONException ignored) {
         }
         return o;
@@ -204,6 +243,8 @@ public final class SpoofConfig {
         Integer autoResetMinutes = null;
         boolean enablePauses = false;
         double pauseProbability = 0.02;
+        List<LatLng> routePolyline = new ArrayList<>();
+        List<String> directionSteps = new ArrayList<>();
 
         public Builder mode(SpoofMode v) { this.mode = v; return this; }
         public Builder start(LatLng v) { this.start = v; return this; }
@@ -222,6 +263,8 @@ public final class SpoofConfig {
         public Builder autoResetMinutes(Integer v) { this.autoResetMinutes = v; return this; }
         public Builder enablePauses(boolean v) { this.enablePauses = v; return this; }
         public Builder pauseProbability(double v) { this.pauseProbability = Math.max(0, Math.min(1, v)); return this; }
+        public Builder routePolyline(List<LatLng> v) { this.routePolyline = new ArrayList<>(v); return this; }
+        public Builder directionSteps(List<String> v) { this.directionSteps = new ArrayList<>(v); return this; }
 
         public SpoofConfig build() { return new SpoofConfig(this); }
     }

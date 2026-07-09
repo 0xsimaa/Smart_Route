@@ -324,6 +324,10 @@ public class MainActivity extends AppCompatActivity implements SpoofController.L
                 config.waypoints.size(), shape,
                 config.minSpeedKmh, config.maxSpeedKmh,
                 config.durationMinutes));
+        if (!config.isUsingPlaceholderRoute()) {
+            txtRouteMeta.append(String.format(Locale.US, " • %.2f km",
+                    config.routeLengthMeters() / 1000.0));
+        }
 
         // KPIs
         LatLng cur = controller.getCurrentPosition();
@@ -360,8 +364,14 @@ public class MainActivity extends AppCompatActivity implements SpoofController.L
             txtRemaining.setVisibility(View.GONE);
         }
 
+        boolean hasTrail = !controller.getTrajectory().isEmpty();
         // Buttons & FAB
+        setControlsEnabled(active, hasTrail);
+    }
+
+    private void setControlsEnabled(boolean active, boolean hasTrail) {
         if (active) {
+            boolean paused = controller.isPaused();
             fabStart.setText(paused ? R.string.action_resume : R.string.action_pause);
             fabStart.setIconResource(paused ? R.drawable.ic_play : R.drawable.ic_pause);
         } else {
@@ -369,10 +379,9 @@ public class MainActivity extends AppCompatActivity implements SpoofController.L
             fabStart.setIconResource(R.drawable.ic_play);
         }
         btnPause.setEnabled(active);
-        btnPause.setText(paused ? R.string.action_resume : R.string.action_pause);
-        btnPause.setIconResource(paused ? R.drawable.ic_play : R.drawable.ic_pause);
+        btnPause.setText(controller.isPaused() ? R.string.action_resume : R.string.action_pause);
+        btnPause.setIconResource(controller.isPaused() ? R.drawable.ic_play : R.drawable.ic_pause);
         btnStop.setEnabled(active);
-        boolean hasTrail = !controller.getTrajectory().isEmpty();
         btnExportGpx.setEnabled(hasTrail);
         btnShareGpx.setEnabled(hasTrail || lastGpxFile != null);
     }

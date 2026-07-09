@@ -2,6 +2,11 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
     <item
+        android:id="@+id/action_search"
+        android:title="@string/search_hint"
+        android:icon="@drawable/ic_pin"
+        app:showAsAction="always"/>
+    <item
         android:id="@+id/action_clear_waypoints"
         android:title="@string/action_clear_waypoints"
         android:icon="@drawable/ic_clear"

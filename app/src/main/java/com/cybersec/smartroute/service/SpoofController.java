@@ -206,9 +206,14 @@ public final class SpoofController {
         storage.setSessionActive(true);
         storage.appendAudit("Session started (" + config.mode.wireName() + ")");
 
-        // Save engine session blob — picks up immediately if the OS kills us.
-        sessionStore.saveSession(config.toEngineJson(0));
-        MockLocationForegroundService.start(appContext, config.toEngineJson(0).toString());
+        SessionAdvancer.resetDebounce();
+        JSONObject engineSession = config.toEngineJson(0);
+        sessionStore.saveSession(engineSession);
+        MockLocationForegroundService.start(appContext, engineSession.toString());
+
+        // Push the first fix immediately so metrics and trajectory populate at once.
+        applyAdvanceResult(SessionAdvancer.advance(appContext, 0.0), 0.0);
+
         startTimer();
         notifyListeners();
         return true;
@@ -285,10 +290,14 @@ public final class SpoofController {
         SessionAdvancer.AdvanceResult r =
                 SessionAdvancer.advance(appContext, deltaSeconds);
         if (r == null) {
-            // Session vanished (e.g. user stopped from notification).
             if (active) stop(false);
             return;
         }
+        applyAdvanceResult(r, deltaSeconds);
+        checkLeak();
+    }
+
+    private void applyAdvanceResult(SessionAdvancer.AdvanceResult r, double deltaSeconds) {
         LatLng pos = new LatLng(r.lat, r.lon);
         if (lastPushed != null) {
             distanceTraveledKm += LatLng.haversineKm(lastPushed, pos);
@@ -320,7 +329,6 @@ public final class SpoofController {
             return;
         }
         notifyListeners();
-        checkLeak();
     }
 
     private void applyLocation(LatLng pos, boolean fallback, double dt, boolean recordHistory) {
@@ -336,7 +344,6 @@ public final class SpoofController {
         boolean ok = MockLocationEngine.setLocation(
                 pos.latitude, pos.longitude, 3f, 0d, bearing, speed);
         if (!ok && !fallback) {
-            // Try safe zone
             status = PrivacyStatus.FALLBACK;
             ok = MockLocationEngine.setLocation(
                     config.safeZone.latitude, config.safeZone.longitude);
@@ -352,7 +359,6 @@ public final class SpoofController {
                     if (trajectory.size() > 5000) trajectory.remove(0);
                 }
             }
-            // keep session JSON in sync for the foreground service
             try {
                 JSONObject session = sessionStore.loadSession();
                 if (session != null) {

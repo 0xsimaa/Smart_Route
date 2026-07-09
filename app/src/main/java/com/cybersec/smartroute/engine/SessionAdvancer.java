@@ -19,6 +19,11 @@ public final class SessionAdvancer {
     private SessionAdvancer() {
     }
 
+    /** Reset debounce gate when a new session starts. */
+    public static void resetDebounce() {
+        lastAdvanceMs = 0L;
+    }
+
     public static AdvanceResult advance(Context context, double deltaSeconds) {
         MockLocationSessionStore store = new MockLocationSessionStore(context);
         JSONObject session = store.loadSession();

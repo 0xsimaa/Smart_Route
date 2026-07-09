@@ -21,6 +21,7 @@ import com.cybersec.smartroute.engine.MockLocationEngine;
 import com.cybersec.smartroute.engine.MockLocationPermissions;
 import com.cybersec.smartroute.engine.SessionAdvancer;
 import com.cybersec.smartroute.storage.MockLocationSessionStore;
+import com.cybersec.smartroute.storage.SecureStorage;
 import com.cybersec.smartroute.ui.MainActivity;
 
 import org.json.JSONException;
@@ -150,6 +151,7 @@ public class MockLocationForegroundService extends Service {
         if (tick != null) handler.removeCallbacks(tick);
         tick = null;
         new MockLocationSessionStore(this).clearSession();
+        new SecureStorage(this).setSessionActive(false);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             stopForeground(STOP_FOREGROUND_REMOVE);
         } else {

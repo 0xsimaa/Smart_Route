@@ -38,6 +38,14 @@
     <string name="action_about">About</string>
     <string name="action_copy_coords">Copy coordinates</string>
     <string name="action_edit_route">Edit on map</string>
+    <string name="action_my_location">My location</string>
+    <string name="search_hint">Search for a place</string>
+    <string name="directions_title">Turn-by-turn directions</string>
+    <string name="directions_loading">Fetching road route…</string>
+    <string name="directions_failed">Could not load road route — using straight line</string>
+    <string name="route_saved">Route saved</string>
+    <string name="maps_key_error">Maps API key missing or invalid — check secrets.properties and rebuild</string>
+    <string name="places_not_initialized">Places API not available — enable Places API in Google Cloud</string>
 
     <!-- Home -->
     <string name="route_summary">Route summary</string>
@@ -85,7 +93,7 @@
     <string name="setup_step3_title">Grant location &amp; notifications</string>
     <string name="setup_step3_sub">Required for foreground service and leak detection</string>
     <string name="setup_step4_title">Google Maps API key</string>
-    <string name="setup_step4_sub">Copy secrets.properties.example → secrets.properties and set MAPS_API_KEY (Maps SDK for Android enabled in Google Cloud)</string>
+    <string name="setup_step4_sub">Copy secrets.properties.example → secrets.properties. Enable Maps SDK for Android, Places API, and Directions API in Google Cloud, then rebuild.</string>
     <string name="setup_maps_missing">Maps key missing — add MAPS_API_KEY to secrets.properties and rebuild</string>
     <string name="setup_status_ready">Ready for mock GPS</string>
     <string name="setup_status_not_ready">Mock app not selected</string>

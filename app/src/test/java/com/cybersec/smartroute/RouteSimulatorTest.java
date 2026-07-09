@@ -62,6 +62,9 @@ public class RouteSimulatorTest {
                 .durationMinutes(45)
                 .updateIntervalSeconds(3)
                 .enablePauses(true)
+                .routePolyline(java.util.Arrays.asList(
+                        new LatLng(0, 0), new LatLng(0.01, 0.01)))
+                .directionSteps(java.util.Arrays.asList("Head north", "Turn right"))
                 .build();
         SpoofConfig parsed = SpoofConfig.fromJson(original.toJson());
         assertEquals(original.minSpeedKmh, parsed.minSpeedKmh, 1e-9);
@@ -69,5 +72,33 @@ public class RouteSimulatorTest {
         assertEquals(original.durationMinutes, parsed.durationMinutes);
         assertEquals(original.updateIntervalSeconds, parsed.updateIntervalSeconds);
         assertEquals(original.enablePauses, parsed.enablePauses);
+        assertEquals(2, parsed.routePolyline.size());
+        assertEquals(2, parsed.directionSteps.size());
+    }
+
+    @Test
+    public void simulator_follows_route_polyline() throws Exception {
+        java.util.List<LatLng> poly = new java.util.ArrayList<>();
+        poly.add(new LatLng(0, 0));
+        poly.add(new LatLng(0.01, 0));
+        poly.add(new LatLng(0.01, 0.01));
+        SpoofConfig cfg = SpoofConfig.defaults().toBuilder()
+                .start(new LatLng(0, 0))
+                .end(new LatLng(0.01, 0.01))
+                .routePolyline(poly)
+                .speedRange(120, 120)
+                .build();
+        org.json.JSONObject session = cfg.toEngineJson(0);
+        NativeRouteSimulator sim = new NativeRouteSimulator(session);
+        NativeRouteSimulator.TickResult mid = sim.tick(5);
+        assertTrue(mid.lat > 0 || mid.lon > 0);
+    }
+
+    @Test
+    public void directions_downsample_caps_points() {
+        java.util.List<LatLng> many = new java.util.ArrayList<>();
+        for (int i = 0; i < 1000; i++) many.add(new LatLng(i * 0.001, 0));
+        java.util.List<LatLng> out = com.cybersec.smartroute.util.DirectionsClient.downsample(many, 100);
+        assertEquals(100, out.size());
     }
 }

@@ -101,7 +101,7 @@ public final class SecureStorage {
     }
 
     public void setSessionActive(boolean active) {
-        prefs.edit().putBoolean(KEY_SESSION_ACTIVE, active).apply();
+        prefs.edit().putBoolean(KEY_SESSION_ACTIVE, active).commit();
     }
 
     public boolean wasSessionActive() {

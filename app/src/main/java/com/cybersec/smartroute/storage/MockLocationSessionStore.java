@@ -24,11 +24,12 @@ public final class MockLocationSessionStore {
                 .getSharedPreferences(PREFS, Context.MODE_PRIVATE);
     }
 
+    /** Synchronous write so the foreground service can read session immediately. */
     public void saveSession(JSONObject session) {
         prefs.edit()
                 .putString(KEY_SESSION, session.toString())
                 .putBoolean(KEY_ACTIVE, true)
-                .apply();
+                .commit();
     }
 
     public JSONObject loadSession() {
@@ -46,7 +47,7 @@ public final class MockLocationSessionStore {
         prefs.edit()
                 .remove(KEY_SESSION)
                 .putBoolean(KEY_ACTIVE, false)
-                .apply();
+                .commit();
     }
 
     public boolean isSessionActive() {
