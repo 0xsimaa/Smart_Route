@@ -25,7 +25,8 @@ This is **not** a map-only animation. Coordinates are written to
 |------|---------|
 | **Injection** | Custom provider `smart_route_gps` with latitude, longitude, accuracy, bearing, speed, and timestamps |
 | **Background** | Foreground service (`location` type) with live progress, coordinates, and a **Stop** action in the notification |
-| **Motion** | Speed range, smooth / constant / sudden acceleration, straight or curved paths, multi-waypoint routes, optional pauses |
+| **Route planner** | Google Maps tiles, **place search** (Places Autocomplete), **road-following routes** (Directions API), turn-by-turn steps, draggable start/end/waypoint markers, **My Location** blue dot |
+| **Motion** | Speed range, smooth / constant / sudden acceleration, road polyline or straight/curved paths, multi-waypoint routes, optional pauses |
 | **Safety** | Safe-zone fallback, leak detection (real GPS vs. injected), encrypted audit log |
 | **Export** | GPX 1.1 export and share via `FileProvider` |
 | **UI** | Dashboard with status pill, route summary, live metric tiles, route planner map, settings, setup wizard |
@@ -42,7 +43,7 @@ and set start / end (and optional waypoints) before starting a session.
 | Android Studio | Iguana or newer (AGP 8.7+) |
 | JDK | 17 |
 | Android SDK | API 34 (`compileSdk`); device **API 24+** |
-| Google Maps | [Maps SDK for Android](https://developers.google.com/maps/documentation/android-sdk/get-api-key) API key |
+| Google Cloud APIs | One API key with **Maps SDK for Android**, **Places API**, and **Directions API** enabled |
 | Device | **Physical phone strongly recommended** — emulators often do not propagate mock locations to other apps reliably |
 
 ---
@@ -76,7 +77,7 @@ Android Studio performs the same download on **File → Sync Project with Gradle
 
 ---
 
-## 2. Configure the Maps API key
+## 2. Configure the Google API key
 
 ```bash
 cp secrets.properties.example secrets.properties
@@ -91,9 +92,18 @@ MAPS_API_KEY=your_key_here
 In [Google Cloud Console](https://console.cloud.google.com/):
 
 1. Create or select a project.
-2. Enable **Maps SDK for Android**.
-3. Create an API key; restrict it to Android apps + your package name
-   `com.cybersec.smartroute` and SHA-1 fingerprint for production.
+2. Enable all three APIs under **APIs & Services → Library**:
+   - [Maps SDK for Android](https://developers.google.com/maps/documentation/android-sdk/get-api-key)
+   - [Places API](https://developers.google.com/maps/documentation/places/web-service/overview) (map search)
+   - [Directions API](https://developers.google.com/maps/documentation/directions/overview) (road-following routes)
+3. Create an API key under **Credentials**.
+4. Restrict the key to Android apps with package name `com.cybersec.smartroute` and your SHA-1 fingerprint.
+
+Obtain your debug SHA-1:
+
+```bash
+./gradlew signingReport
+```
 
 Rebuild after changing the key (`Build → Rebuild Project` or `./gradlew :app:assembleDebug`).
 
@@ -144,12 +154,13 @@ Use this checklist for a demo or lab report:
 
 | Step | Action | Expected result |
 |------|--------|-----------------|
-| 1 | Open **Edit on map**, drag green (start) and red (end) markers to two real places, tap **Save route** | Dashboard route summary updates with coordinates and distance |
-| 2 | Tap **Start** (extended FAB) | Status pill turns green; metric tiles show changing coordinates, speed, bearing |
-| 3 | Open **Google Maps** (or another GPS app) | The blue dot moves along your planned path |
-| 4 | Press **Home** | Persistent notification shows progress % and coordinates; injection continues |
-| 5 | Tap **Stop** in the app or **Stop** on the notification | Injection ends; notification disappears |
-| 6 | **Export GPX** / **Share GPX** | File saved under app storage and share sheet opens |
+| 1 | Open **Edit on map** — search for a place, drag green (start) and red (end) markers, wait for the blue road route and directions card | Road polyline and turn-by-turn steps appear; **My Location** shows your real position while editing |
+| 2 | Tap **Save route** | Dashboard route summary updates with coordinates and distance (km) |
+| 3 | Tap **Start** (extended FAB) | Status pill turns green; metric tiles show changing coordinates, speed, bearing; Pause / Stop / Export / Share enable |
+| 4 | Open **Google Maps** (or another GPS app) | The blue dot moves along the road route |
+| 5 | Press **Home** | Persistent notification shows progress % and coordinates; injection continues |
+| 6 | Tap **Stop** in the app or **Stop** on the notification | Injection ends; notification disappears |
+| 7 | **Export GPX** / **Share GPX** | File saved under app storage and share sheet opens |
 
 Optional: **Settings** → adjust speed, interval, curved path, safe zone → start again.
 
@@ -171,9 +182,10 @@ app/src/main/java/com/cybersec/smartroute/
   service/    SpoofController, MockLocationForegroundService, BootRecoveryReceiver
   storage/    SecureStorage, MockLocationSessionStore
   model/      SpoofConfig, LatLng, enums
-  util/       GpxExporter, LeakDetector, MotionMetrics
+  util/       DirectionsClient, GpxExporter, LeakDetector, MotionMetrics
   ui/         MainActivity, MapActivity, SettingsActivity, SetupActivity, SafeZonePickerActivity
 app/src/test/ RouteSimulatorTest (JVM)
+.github/      android_ci.yml
 scripts/      download-deps.sh
 USAGE.md      Step-by-step testing guide
 SECURITY.md   Responsible-use policy
@@ -185,7 +197,7 @@ SECURITY.md   Responsible-use policy
 
 `ACCESS_FINE_LOCATION`, `ACCESS_COARSE_LOCATION`, `ACCESS_MOCK_LOCATION`,
 `FOREGROUND_SERVICE`, `FOREGROUND_SERVICE_LOCATION`, `POST_NOTIFICATIONS`,
-`RECEIVE_BOOT_COMPLETED`, `INTERNET` (map tiles only).
+`RECEIVE_BOOT_COMPLETED`, `INTERNET` (map tiles, Places search, Directions API).
 
 No analytics SDKs.
 
@@ -195,7 +207,11 @@ No analytics SDKs.
 
 | Symptom | Fix |
 |---------|-----|
-| Map is blank / gray | Add `MAPS_API_KEY` to `secrets.properties`, enable Maps SDK for Android, rebuild |
+| Map is blank / gray | Add `MAPS_API_KEY` to `secrets.properties`, enable **Maps SDK for Android**, rebuild |
+| Search returns no results | Enable **Places API** in Google Cloud Console for the same project/key |
+| No road route / straight line only | Enable **Directions API**; check device has internet when editing the route |
+| Route not saved after map edit | Tap **Save route** before leaving; confirm coordinates update on the dashboard |
+| Metrics frozen / buttons disabled | Rebuild with latest code; confirm mock app is selected and tap **Start** again |
 | "Mock location not configured" | Select Smart Route as mock app in Developer options |
 | Other apps don't move | Use a **physical device**; confirm mock app selection and tap **Start** |
 | Gradle: `JAVA_COMPILER` error | Point `JAVA_HOME` to JDK **17**, not a JRE-only install |
