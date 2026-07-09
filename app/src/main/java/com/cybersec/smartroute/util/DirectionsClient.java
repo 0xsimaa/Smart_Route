@@ -17,7 +17,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Locale;
 
 /**
  * Fetches a road-following route from the Google Directions API and decodes
@@ -128,7 +127,7 @@ public final class DirectionsClient {
     }
 
     /** Keep routes manageable for the simulator while preserving road shape. */
-    static List<LatLng> downsample(List<LatLng> points, int maxPoints) {
+    public static List<LatLng> downsample(List<LatLng> points, int maxPoints) {
         if (points.size() <= maxPoints) return points;
         List<LatLng> out = new ArrayList<>(maxPoints);
         double step = (double) (points.size() - 1) / (maxPoints - 1);

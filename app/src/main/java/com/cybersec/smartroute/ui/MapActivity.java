@@ -51,8 +51,6 @@ import java.util.concurrent.Executors;
 
 public class MapActivity extends AppCompatActivity implements OnMapReadyCallback {
 
-    private static final int REQ_PLACES = 1001;
-
     private SpoofController controller;
     private GoogleMap map;
     private Marker startMarker;
@@ -72,6 +70,21 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
     private FloatingActionButton fabMyLocation;
     private FusedLocationProviderClient fusedClient;
     private final ExecutorService ioExecutor = Executors.newSingleThreadExecutor();
+
+    private final androidx.activity.result.ActivityResultLauncher<Intent> placesLauncher =
+            registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
+                if (result.getResultCode() != RESULT_OK || result.getData() == null) return;
+                Place place = Autocomplete.getPlaceFromIntent(result.getData());
+                if (place.getLatLng() != null && map != null) {
+                    com.google.android.gms.maps.model.LatLng p = place.getLatLng();
+                    map.animateCamera(CameraUpdateFactory.newLatLngZoom(p, 15f));
+                    if (place.getName() != null) {
+                        searchInput.setText(place.getName());
+                    } else if (place.getAddress() != null) {
+                        searchInput.setText(place.getAddress());
+                    }
+                }
+            });
 
     private final androidx.activity.result.ActivityResultLauncher<String[]> locationPermLauncher =
             registerForActivityResult(new ActivityResultContracts.RequestMultiplePermissions(),
@@ -159,27 +172,10 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                     Place.Field.ID, Place.Field.NAME, Place.Field.LAT_LNG, Place.Field.ADDRESS);
             Intent intent = new Autocomplete.IntentBuilder(AutocompleteActivityMode.OVERLAY, fields)
                     .build(this);
-            startActivityForResult(intent, REQ_PLACES);
+            placesLauncher.launch(intent);
         } catch (Exception e) {
             Snackbar.make(findViewById(android.R.id.content),
                     R.string.places_not_initialized, Snackbar.LENGTH_LONG).show();
-        }
-    }
-
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, android.content.Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == REQ_PLACES && resultCode == RESULT_OK && data != null) {
-            Place place = Autocomplete.getPlaceFromIntent(data);
-            if (place.getLatLng() != null && map != null) {
-                com.google.android.gms.maps.model.LatLng p = place.getLatLng();
-                map.animateCamera(CameraUpdateFactory.newLatLngZoom(p, 15f));
-                if (place.getName() != null) {
-                    searchInput.setText(place.getName());
-                } else if (place.getAddress() != null) {
-                    searchInput.setText(place.getAddress());
-                }
-            }
         }
     }
 
@@ -268,8 +264,13 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         }
     }
 
-    /** BUG-002 fix: explicitly persist marker positions before finishing. */
+    /** Persist marker positions and road route before finishing. */
     private void saveRouteAndFinish() {
+        if (directionsFetchInFlight) {
+            Snackbar.make(findViewById(android.R.id.content),
+                    R.string.directions_loading, Snackbar.LENGTH_SHORT).show();
+            return;
+        }
         SpoofConfig.Builder b = controller.getConfig().toBuilder();
         if (startMarker != null) {
             b.start(LatLng.fromGms(startMarker.getPosition()));

@@ -238,6 +238,9 @@ public class MainActivity extends AppCompatActivity implements SpoofController.L
         super.onStart();
         controller.addListener(this);
         controller.checkMockReady();
+        if (controller.isActive()) {
+            controller.refreshUiFromSession();
+        }
         renderState();
     }
 

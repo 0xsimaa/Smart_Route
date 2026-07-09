@@ -58,7 +58,7 @@ public final class SecureStorage {
     }
 
     public void saveConfig(SpoofConfig config) {
-        prefs.edit().putString(KEY_CONFIG, config.toJson().toString()).apply();
+        prefs.edit().putString(KEY_CONFIG, config.toJson().toString()).commit();
     }
 
     public SpoofConfig loadConfig() {

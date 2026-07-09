@@ -9,8 +9,8 @@ import org.json.JSONObject;
 
 /**
  * Single tick of the active session: load → advance → push → persist.
- * Idempotent for sub-interval calls so the foreground service and a
- * UI-driven timer can both poll without double-advancing.
+ * The foreground service calls {@link #advance}; the UI calls
+ * {@link #pollUiState} to read the latest session without double-ticking.
  */
 public final class SessionAdvancer {
 
@@ -24,6 +24,10 @@ public final class SessionAdvancer {
         lastAdvanceMs = 0L;
     }
 
+    /**
+     * Advance simulation and inject the next GPS fix. Called only from
+     * {@link com.cybersec.smartroute.service.MockLocationForegroundService}.
+     */
     public static AdvanceResult advance(Context context, double deltaSeconds) {
         MockLocationSessionStore store = new MockLocationSessionStore(context);
         JSONObject session = store.loadSession();
@@ -51,6 +55,8 @@ public final class SessionAdvancer {
         try {
             updated.put("lastLat", tick.lat);
             updated.put("lastLon", tick.lon);
+            updated.put("lastBearing", bearing);
+            updated.put("lastSpeedMps", speed);
         } catch (JSONException ignored) {
         }
         store.saveSession(updated);
@@ -59,11 +65,21 @@ public final class SessionAdvancer {
         return new AdvanceResult(tick.lat, tick.lon, progress, tick.done, ok, bearing, speed);
     }
 
+    /** Read current session state for UI refresh — does not advance or inject. */
+    public static AdvanceResult pollUiState(Context context) {
+        MockLocationSessionStore store = new MockLocationSessionStore(context);
+        JSONObject session = store.loadSession();
+        if (session == null) return null;
+        return statusFromSession(session);
+    }
+
     public static AdvanceResult statusFromSession(JSONObject session) {
         double lat = session.optDouble("lastLat", session.optDouble("startLat", 0));
         double lon = session.optDouble("lastLon", session.optDouble("startLon", 0));
         double progress = session.optDouble("progress", 0);
-        return new AdvanceResult(lat, lon, progress, progress >= 1.0, true, 0f, 0f);
+        float bearing = (float) session.optDouble("lastBearing", 0);
+        float speed = (float) session.optDouble("lastSpeedMps", 0);
+        return new AdvanceResult(lat, lon, progress, progress >= 1.0, true, bearing, speed);
     }
 
     public static double computeBearing(double lat1, double lon1, double lat2, double lon2) {

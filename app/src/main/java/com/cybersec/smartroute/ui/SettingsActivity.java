@@ -2,12 +2,11 @@ package com.cybersec.smartroute.ui;
 
 import android.content.Intent;
 import android.os.Bundle;
-import android.view.View;
-import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Spinner;
 import android.widget.TextView;
 
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.cybersec.smartroute.R;
@@ -31,7 +30,6 @@ public class SettingsActivity extends AppCompatActivity {
 
     public static final String EXTRA_SAFE_LAT = "safe_lat";
     public static final String EXTRA_SAFE_LON = "safe_lon";
-    private static final int REQ_SAFE_ZONE = 42;
 
     private SpoofController controller;
 
@@ -40,8 +38,6 @@ public class SettingsActivity extends AppCompatActivity {
     private Slider sliderDuration;
     private MaterialSwitch switchPauses;
     private MaterialButtonToggleGroup toggleShape;
-    private MaterialButton shapeStraight;
-    private MaterialButton shapeCurved;
     private Spinner spinnerAccel;
     private Slider sliderAutoReset;
     private TextView lblSpeed;
@@ -50,6 +46,16 @@ public class SettingsActivity extends AppCompatActivity {
     private TextView lblAutoReset;
     private TextView txtSafeZone;
     private LatLng selectedSafeZone;
+
+    private final androidx.activity.result.ActivityResultLauncher<Intent> safeZoneLauncher =
+            registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
+                if (result.getResultCode() != RESULT_OK || result.getData() == null) return;
+                Intent data = result.getData();
+                double lat = data.getDoubleExtra(EXTRA_SAFE_LAT, selectedSafeZone.latitude);
+                double lon = data.getDoubleExtra(EXTRA_SAFE_LON, selectedSafeZone.longitude);
+                selectedSafeZone = new LatLng(lat, lon);
+                renderLabels();
+            });
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -65,8 +71,6 @@ public class SettingsActivity extends AppCompatActivity {
         sliderDuration = findViewById(R.id.sliderDuration);
         switchPauses = findViewById(R.id.switchPauses);
         toggleShape = findViewById(R.id.toggleShape);
-        shapeStraight = findViewById(R.id.shapeStraight);
-        shapeCurved = findViewById(R.id.shapeCurved);
         spinnerAccel = findViewById(R.id.spinnerAccel);
         sliderAutoReset = findViewById(R.id.sliderAutoReset);
         lblSpeed = findViewById(R.id.lblSpeed);
@@ -101,7 +105,7 @@ public class SettingsActivity extends AppCompatActivity {
             Intent i = new Intent(this, SafeZonePickerActivity.class);
             i.putExtra(EXTRA_SAFE_LAT, selectedSafeZone.latitude);
             i.putExtra(EXTRA_SAFE_LON, selectedSafeZone.longitude);
-            startActivityForResult(i, REQ_SAFE_ZONE);
+            safeZoneLauncher.launch(i);
         });
 
         MaterialButton btnApply = findViewById(R.id.btnApply);
@@ -147,16 +151,5 @@ public class SettingsActivity extends AppCompatActivity {
                 .build();
         controller.updateConfig(newConfig);
         finish();
-    }
-
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == REQ_SAFE_ZONE && resultCode == RESULT_OK && data != null) {
-            double lat = data.getDoubleExtra(EXTRA_SAFE_LAT, selectedSafeZone.latitude);
-            double lon = data.getDoubleExtra(EXTRA_SAFE_LON, selectedSafeZone.longitude);
-            selectedSafeZone = new LatLng(lat, lon);
-            renderLabels();
-        }
     }
 }

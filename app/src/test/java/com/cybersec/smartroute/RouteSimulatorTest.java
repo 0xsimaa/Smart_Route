@@ -95,6 +95,21 @@ public class RouteSimulatorTest {
     }
 
     @Test
+    public void statusFromSession_reads_bearing_and_speed() throws Exception {
+        org.json.JSONObject o = new org.json.JSONObject();
+        o.put("lastLat", 1.0);
+        o.put("lastLon", 2.0);
+        o.put("progress", 0.5);
+        o.put("lastBearing", 90);
+        o.put("lastSpeedMps", 12.5);
+        com.cybersec.smartroute.engine.SessionAdvancer.AdvanceResult r =
+                com.cybersec.smartroute.engine.SessionAdvancer.statusFromSession(o);
+        assertEquals(90f, r.bearing, 0.01f);
+        assertEquals(12.5f, r.speedMps, 0.01f);
+        assertEquals(0.5, r.progress, 1e-9);
+    }
+
+    @Test
     public void directions_downsample_caps_points() {
         java.util.List<LatLng> many = new java.util.ArrayList<>();
         for (int i = 0; i < 1000; i++) many.add(new LatLng(i * 0.001, 0));

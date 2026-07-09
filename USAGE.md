@@ -14,7 +14,7 @@ Before you do anything else, make sure you have:
   that compiles fine but doesn't actually propagate fixes to other apps.
   Use a real device for any meaningful test.*
 - The device's USB-debugging mode enabled (Settings → Developer options).
-- A Google Maps Android SDK key in `secrets.properties` (see the project [README](README.md)).
+- A Google Cloud API key in `secrets.properties` with **Maps SDK for Android**, **Places API**, and **Directions API** enabled (see the project [README](README.md)).
 - Android Studio with the project opened, OR the debug APK installed:
   ```bash
   ./gradlew :app:installDebug
@@ -54,14 +54,14 @@ mock GPS"** once everything is wired up.
 ## 2. Plan a route
 
 1. From the dashboard tap **Edit on map** (or press **Start** with the placeholder route — it will pop a "pick a route first" dialog with an *Open map* button).
-2. The map opens on a world view because no real route is set yet.
-3. Drag the **green** marker to your desired starting point.
-4. Drag the **red** marker to your desired endpoint.
-5. (Optional) Long-press anywhere on the map to drop a waypoint, or use the toolbar's "Add waypoint" button to add one at the current map center. Drag any waypoint to fine-tune it. Use "Clear waypoints" to reset.
-6. Tap the floating **Save route** button. You're returned to the dashboard.
+2. The map opens centred on your **real location** (blue dot) when location permission is granted.
+3. **Search** for a place using the search bar or toolbar search icon (Places Autocomplete).
+4. Drag the **green** marker to your starting point and the **red** marker to your endpoint.
+5. Wait for the **blue road polyline** and **turn-by-turn directions** card to appear (requires internet + Directions API enabled).
+6. (Optional) Long-press anywhere on the map to drop a waypoint, or use the toolbar's "Add waypoint" button. Use "Clear waypoints" to reset.
+7. Tap the floating **Save route** button. You're returned to the dashboard.
 
-The route summary card now shows your start coordinates, end coordinates,
-waypoint count and length.
+The route summary card now shows your start coordinates, end coordinates, waypoint count, and total route distance (km).
 
 ---
 
@@ -170,7 +170,11 @@ under the hood) and capped at 200 entries.
 |---|---|---|
 | Tap Start → "Select Smart Route as mock location app in Developer options." | Step 1.2 not done | Settings → Developer options → Select mock location app → **Smart Route** |
 | Tap Start → "Could not register GPS test provider." | Some OEMs (Xiaomi, Vivo) require an extra "Allow mock locations" toggle inside their custom Developer options. | Find that toggle in your OEM-specific developer settings and enable it. |
-| Map renders grey tiles | Maps key invalid, billing not enabled, or `Maps SDK for Android` API not enabled in your Google Cloud project | Re-check `secrets.properties`, then enable the API and (free-tier) billing in Google Cloud Console. |
+| Map renders grey tiles | Maps key invalid, billing not enabled, or **Maps SDK for Android** not enabled | Re-check `secrets.properties`, enable the API and billing in Google Cloud Console, rebuild |
+| Search returns no results | **Places API** not enabled for the project/key | Enable Places API in Google Cloud Console |
+| No road route / straight line only | **Directions API** not enabled, or device offline while editing | Enable Directions API; confirm internet when placing markers |
+| Route not saved after map edit | Save tapped before markers moved, or while directions still loading | Drag markers to real locations; wait for road route, then tap **Save route** |
+| Metrics frozen / buttons disabled | Session failed to start or mock app not selected | Confirm mock app in Developer options; tap **Stop** then **Start** again |
 | Other apps don't see the mock fix | Many apps (banking, Pokémon Go, ride-share) actively detect mock locations via `Location#isMock()`. This is a safety feature of those apps, not a bug here. | Test with a non-blocking app like Google Maps or GPS Test. |
 | Notification missing on Android 13 + | Notification permission denied | Settings → Apps → Smart Route → Notifications → enable. |
 | Status pill stays red ("Leak detected") | Real GPS fix and injected coordinate diverge by &gt; 150 m, which is normal at session start before the first lock | Wait one or two intervals; the pill returns to green once the next FusedLocation poll comes back consistent. |

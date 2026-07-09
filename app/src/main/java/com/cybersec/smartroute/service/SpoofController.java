@@ -148,6 +148,15 @@ public final class SpoofController {
         MockLocationPermissions.openAppSettings(appContext);
     }
 
+    /** Force UI sync from the active session store (e.g. after returning from background). */
+    public void refreshUiFromSession() {
+        if (!active || config.mode == SpoofMode.STATIC_LOCATION) {
+            notifyListeners();
+            return;
+        }
+        syncUiFromSession();
+    }
+
     private void loadPersisted() {
         SpoofConfig saved = storage.loadConfig();
         if (saved != null) config = saved;
@@ -158,15 +167,29 @@ public final class SpoofController {
 
     private void recoverFromCrashIfNeeded() {
         if (!storage.wasSessionActive()) return;
+        if (!sessionStore.isSessionActive()) {
+            storage.setSessionActive(false);
+            return;
+        }
+        JSONObject session = sessionStore.loadSession();
+        if (session == null) {
+            storage.setSessionActive(false);
+            return;
+        }
         if (!MockLocationEngine.initProvider()) {
             status = PrivacyStatus.ERROR;
             statusMessage = "Recovery failed — set Smart Route as the mock location app";
+            storage.setSessionActive(false);
+            sessionStore.clearSession();
             return;
         }
         active = true;
+        paused = false;
+        sessionStartMs = System.currentTimeMillis();
         status = PrivacyStatus.FALLBACK;
-        statusMessage = "Session recovered — safe zone until Stop or Start";
-        applyLocation(config.safeZone, false, 1.0, false);
+        statusMessage = "Session recovered — resuming mock GPS";
+        MockLocationForegroundService.start(appContext, session.toString());
+        startTimer();
         storage.appendAudit("Crash/boot recovery");
     }
 
@@ -211,10 +234,8 @@ public final class SpoofController {
         sessionStore.saveSession(engineSession);
         MockLocationForegroundService.start(appContext, engineSession.toString());
 
-        // Push the first fix immediately so metrics and trajectory populate at once.
-        applyAdvanceResult(SessionAdvancer.advance(appContext, 0.0), 0.0);
-
         startTimer();
+        syncUiFromSession();
         notifyListeners();
         return true;
     }
@@ -287,8 +308,7 @@ public final class SpoofController {
             return;
         }
 
-        SessionAdvancer.AdvanceResult r =
-                SessionAdvancer.advance(appContext, deltaSeconds);
+        SessionAdvancer.AdvanceResult r = SessionAdvancer.pollUiState(appContext);
         if (r == null) {
             if (active) stop(false);
             return;
@@ -297,18 +317,31 @@ public final class SpoofController {
         checkLeak();
     }
 
+    private void syncUiFromSession() {
+        SessionAdvancer.AdvanceResult r = SessionAdvancer.pollUiState(appContext);
+        if (r == null) {
+            mainHandler.postDelayed(this::syncUiFromSession, 150);
+            return;
+        }
+        applyAdvanceResult(r, 0.0);
+    }
+
     private void applyAdvanceResult(SessionAdvancer.AdvanceResult r, double deltaSeconds) {
+        if (r == null) return;
         LatLng pos = new LatLng(r.lat, r.lon);
-        if (lastPushed != null) {
+        boolean moved = lastPushed == null || LatLng.haversineKm(lastPushed, pos) > 0.00001;
+        if (moved && lastPushed != null) {
             distanceTraveledKm += LatLng.haversineKm(lastPushed, pos);
         }
         currentSpeedMps = r.speedMps;
         currentBearingDeg = r.bearing;
         progress = r.progress;
         lastPushed = pos;
-        synchronized (trajectory) {
-            trajectory.add(pos);
-            if (trajectory.size() > 5000) trajectory.remove(0);
+        if (moved) {
+            synchronized (trajectory) {
+                trajectory.add(pos);
+                if (trajectory.size() > 5000) trajectory.remove(0);
+            }
         }
         if (!r.ok) {
             status = PrivacyStatus.FALLBACK;
