@@ -222,3 +222,10 @@ No analytics SDKs.
 ## License
 
 [MIT](LICENSE)
+
+---
+
+## Contributors
+
+- sim_rah
+- 0xsimaa
